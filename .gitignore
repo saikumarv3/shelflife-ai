@@ -7,8 +7,9 @@ build/
 .venv/
 
 # ML model artifacts (large binary files — stored in MLflow/DVC)
-artifacts/
-*.joblib
+artifacts/*
+!artifacts/.gitkeep
+!artifacts/train_metrics.json
 *.pkl
 
 # Environment

@@ -1,0 +1,46 @@
+stages:
+  seed:
+    cmd: uv run python -m db.seed
+    params:
+      - config/settings.py:
+    outs:
+      - artifacts/seed.done:
+          cache: false
+
+  features:
+    cmd: uv run python -c "
+      from db.session import engine;
+      from features.engineering import FeatureEngineer;
+      from features.store import save_features;
+      import pandas as pd;
+      from sqlalchemy import text;
+      with engine.connect() as conn:
+          sales = pd.read_sql(text('SELECT * FROM daily_sales'), conn);
+          products = pd.read_sql(text('SELECT * FROM products'), conn);
+          inventory = pd.read_sql(text('SELECT * FROM inventory_snapshots'), conn);
+      fe = FeatureEngineer(sales, products, inventory);
+      df = fe.build();
+      save_features(df, engine);
+      print(f'Saved {len(df)} feature rows')
+      "
+    deps:
+      - artifacts/seed.done
+      - features/engineering.py
+      - features/store.py
+    outs:
+      - artifacts/features.done:
+          cache: false
+
+  train:
+    cmd: uv run python -m mlops.train_pipeline
+    deps:
+      - artifacts/features.done
+      - models/demand_forecast.py
+      - models/waste_risk.py
+      - mlops/train_pipeline.py
+    outs:
+      - artifacts/shelflife-demand-forecast.joblib
+      - artifacts/shelflife-waste-risk.joblib
+    metrics:
+      - artifacts/train_metrics.json:
+          cache: false

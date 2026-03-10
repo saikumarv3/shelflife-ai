@@ -14,9 +14,11 @@ Orchestrates:
 
 from __future__ import annotations
 
+import json
 import logging
 import time
 from datetime import datetime
+from pathlib import Path
 
 import mlflow
 import numpy as np
@@ -98,6 +100,18 @@ class TrainPipeline:
                 "val_size": len(X_val),
                 "test_size": len(X_test),
             })
+
+        # Write metrics for DVC tracking
+        metrics_path = Path("artifacts/train_metrics.json")
+        metrics_path.parent.mkdir(exist_ok=True)
+        metrics_path.write_text(json.dumps({
+            "demand_mape": demand_metrics.get("mape"),
+            "demand_rmse": demand_metrics.get("rmse"),
+            "waste_auc_roc": waste_metrics.get("auc_roc"),
+            "waste_f1": waste_metrics.get("f1"),
+            "naive_lag7_mape": baselines.get("naive_lag7_mape"),
+            "elapsed_seconds": round(elapsed, 1),
+        }, indent=2))
 
         logger.info("PIPELINE COMPLETE in %.1fs — run_id=%s", elapsed, run_id)
         self._print_summary(summary)
