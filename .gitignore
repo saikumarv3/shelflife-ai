@@ -41,5 +41,5 @@ pgdata/
 /data/*.csv
 /data/*.parquet
 
-# uv
-uv.lock
+# uv — lock file should be committed for reproducibility
+# uv.lock
