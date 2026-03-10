@@ -3,32 +3,18 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Generator
 from pathlib import Path
 
 import joblib
 import numpy as np
 import redis
-from sqlalchemy.orm import Session
-
 from config.settings import settings
-from db.session import SessionLocal
+from db.session import SessionLocal, get_db  # noqa: F401 — re-exported for route imports
 from features.engineering import FeatureEngineer
 
 logger = logging.getLogger(__name__)
 
 ARTIFACTS_DIR = Path("artifacts")
-
-
-# ── Database session ─────────────────────────────────────────
-
-
-def get_db() -> Generator[Session, None, None]:
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
 
 
 # ── Redis ────────────────────────────────────────────────────

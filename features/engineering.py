@@ -156,7 +156,8 @@ class FeatureEngineer:
         prod = self.products[["product_id", "unit_price", "cost_price", "shelf_life_days", "category_id"]].copy()
         prod["unit_price"] = prod["unit_price"].astype(float)
         prod["cost_price"] = prod["cost_price"].astype(float)
-        prod["margin_pct"] = (prod["unit_price"] - prod["cost_price"]) / prod["unit_price"]
+        prod["margin_pct"] = (prod["unit_price"] - prod["cost_price"]) / prod["unit_price"].replace(0, np.nan)
+        prod["margin_pct"] = prod["margin_pct"].fillna(0)
         prod["category_encoded"] = prod["category_id"] - 1
         prod = prod.drop(columns=["category_id"])
 

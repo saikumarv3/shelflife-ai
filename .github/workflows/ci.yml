@@ -16,7 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv sync --frozen
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+      - run: uv sync --frozen --all-groups
       - run: uv run ruff check .
       - run: uv run ruff format --check .
 
@@ -38,6 +40,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
+          --health-start-period 15s
       redis:
         image: redis:7
         ports:
@@ -51,13 +54,17 @@ jobs:
       DATABASE_URL: postgresql://shelflife:shelflife@localhost:5432/shelflife_test
       REDIS_URL: redis://localhost:6379/0
       API_KEY: test-key-ci
+      MLFLOW_TRACKING_URI: "file:///tmp/mlruns"
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
       - run: uv sync --frozen --all-groups
       - name: Seed database
         run: uv run python -m db.seed
       - name: Train models
+        timeout-minutes: 15
         run: uv run python -m mlops.train_pipeline
         env:
           PYTHONIOENCODING: utf-8

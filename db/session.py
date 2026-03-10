@@ -16,9 +16,10 @@ SessionLocal = sessionmaker(bind=engine, autocommit=False, autoflush=False)
 
 
 def get_db():
-    """Yield a DB session and close it when done."""
+    """Yield a DB session and close it when done. Used by API routes via dependency injection."""
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
+

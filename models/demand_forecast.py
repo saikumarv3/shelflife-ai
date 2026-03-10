@@ -11,6 +11,8 @@ import numpy as np
 from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
 
+from config.settings import settings
+
 
 @dataclass
 class DemandForecaster:
@@ -25,7 +27,7 @@ class DemandForecaster:
         "min_child_weight": 3,
         "reg_alpha": 0.01,
         "reg_lambda": 1.5,
-        "random_state": 42,
+        "random_state": settings.random_seed,
         "n_jobs": -1,
     })
     lgbm_params: dict = field(default_factory=lambda: {
@@ -38,7 +40,7 @@ class DemandForecaster:
         "min_child_samples": 10,
         "reg_alpha": 0.01,
         "reg_lambda": 1.5,
-        "random_state": 42,
+        "random_state": settings.random_seed,
         "n_jobs": -1,
         "verbose": -1,
     })

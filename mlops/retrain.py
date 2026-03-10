@@ -9,7 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import time
-from datetime import date, datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 import joblib
 import numpy as np
@@ -43,7 +43,7 @@ def should_retrain(engine: Engine) -> dict:
         ).mappings().first()
 
     if last_alert:
-        days_since = (datetime.utcnow() - last_alert["created_at"]).days
+        days_since = (datetime.now(timezone.utc).replace(tzinfo=None) - last_alert["created_at"]).days
         triggers["schedule"] = days_since >= settings.retrain_schedule_days
     else:
         triggers["schedule"] = True
@@ -159,7 +159,7 @@ def retrain_and_validate(engine: Engine | None = None) -> dict:
         registry.save_model(new_classifier, settings.waste_model_name)
         RETRAIN_RUNS.labels(outcome="promoted").inc()
 
-        with default_engine.begin() as conn:
+        with engine.begin() as conn:
             conn.execute(
                 text("""
                     INSERT INTO alerts (alert_type, severity, message, metadata_json)
@@ -172,7 +172,7 @@ def retrain_and_validate(engine: Engine | None = None) -> dict:
             )
     else:
         RETRAIN_RUNS.labels(outcome="kept_current").inc()
-        with default_engine.begin() as conn:
+        with engine.begin() as conn:
             conn.execute(
                 text("""
                     INSERT INTO alerts (alert_type, severity, message, metadata_json)

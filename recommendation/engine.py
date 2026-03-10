@@ -54,6 +54,9 @@ class RecommendationEngine:
         self, *, action, product_name, excess, current_stock, predicted_demand,
         waste_risk_score, unit_price, cost_price, margin, days_until_expiry,
     ) -> dict | None:
+        if excess == 0:
+            return None
+
         waste_units = max(1, int(excess * waste_risk_score))
 
         if action.name == "markdown":
@@ -66,7 +69,7 @@ class RecommendationEngine:
         elif action.name == "bundle":
             desc = action.description_template.format(product_name=product_name)
             sell_through = max(1, waste_units // 2)
-            revenue_loss = round(sell_through * unit_price * 0.15, 2)
+            revenue_loss = -round(sell_through * unit_price * 0.15, 2)
             saved = round(sell_through * cost_price, 2)
 
         elif action.name == "donate":

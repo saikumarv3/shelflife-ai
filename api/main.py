@@ -84,7 +84,7 @@ app.add_middleware(RateLimitMiddleware, max_requests=settings.rate_limit_per_min
 app.add_middleware(AuthMiddleware)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.cors_origins.split(","),
+    allow_origins=[o.strip() for o in settings.cors_origins.split(",")],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

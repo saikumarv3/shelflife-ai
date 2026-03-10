@@ -11,6 +11,8 @@ import numpy as np
 import pandas as pd
 from xgboost import XGBClassifier
 
+from config.settings import settings
+
 
 @dataclass
 class WasteRiskClassifier:
@@ -25,7 +27,7 @@ class WasteRiskClassifier:
         "min_child_weight": 3,
         "reg_alpha": 0.01,
         "reg_lambda": 1.5,
-        "random_state": 42,
+        "random_state": settings.random_seed,
         "n_jobs": -1,
         "eval_metric": "logloss",
     })

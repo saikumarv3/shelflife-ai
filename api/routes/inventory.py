@@ -152,7 +152,7 @@ async def update_inventory(
     return InventoryUpdateResponse(
         store_id=req.store_id,
         date=req.date,
-        items_updated=len(req.items),
+        items_updated=len(forecast_accuracy),
         forecast_accuracy=forecast_accuracy,
         rolling_7d_mape=rolling_mape,
     )

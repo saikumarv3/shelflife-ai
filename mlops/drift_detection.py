@@ -72,7 +72,8 @@ def run_drift_check(
     """Check all critical features for drift. Returns per-feature results."""
     threshold = psi_threshold or settings.drift_psi_threshold
     recent_start = date.today() - timedelta(days=recent_days)
-    train_cutoff = "2024-10-01"
+    from mlops.train_pipeline import TrainPipeline
+    train_cutoff = TrainPipeline.TRAIN_CUTOFF
 
     results: dict[str, dict] = {}
     any_drifted = False

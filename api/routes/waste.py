@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 
 from api.dependencies import get_db, get_model_manager, ModelManager
 from api.schemas import WasteRiskRequest, WasteRiskResponse
-from features.engineering import FeatureEngineer
+from recommendation.engine import RecommendationEngine
 
 router = APIRouter(prefix="/predict", tags=["Waste Risk"])
 
@@ -59,7 +59,7 @@ async def predict_waste_risk(
     risk_tier = tiers[0]
 
     excess = max(0, req.current_stock - int(predicted_demand))
-    markdown_pct = _compute_markdown(risk_score, req.days_until_expiry)
+    markdown_pct = RecommendationEngine._compute_markdown_pct(risk_score, req.days_until_expiry)
     explanation = _build_explanation(
         risk_tier, req.days_until_expiry, req.current_stock,
         predicted_demand, markdown_pct,
@@ -77,18 +77,6 @@ async def predict_waste_risk(
         explanation=explanation,
         model_version=mm.model_version,
     )
-
-
-def _compute_markdown(risk: float, days_exp: int) -> int:
-    if days_exp <= 1:
-        return 50
-    if risk >= 0.8:
-        return 40
-    if risk >= 0.5:
-        return 25
-    if risk >= 0.3:
-        return 15
-    return 0
 
 
 def _build_explanation(tier: str, days_exp: int, stock: int, demand: float, md: int) -> str:

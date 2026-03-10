@@ -12,7 +12,8 @@ services:
     healthcheck:
       test: pg_isready -U shelflife
       interval: 5s
-      retries: 5
+      retries: 10
+      start_period: 15s
 
   redis:
     image: redis:7
@@ -22,6 +23,7 @@ services:
       test: redis-cli ping
       interval: 5s
       retries: 5
+      start_period: 5s
 
   mlflow:
     image: ghcr.io/mlflow/mlflow:v3.10.1

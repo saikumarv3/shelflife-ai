@@ -1,14 +1,16 @@
 stages:
   seed:
-    cmd: uv run python -m db.seed
-    params:
-      - config/settings.py:
+    cmd: uv run python -m db.seed && echo "seeded" > artifacts/seed.done
+    deps:
+      - db/seed.py
+      - data_generator/synthetic.py
     outs:
       - artifacts/seed.done:
           cache: false
 
   features:
-    cmd: uv run python -c "
+    cmd: >-
+      uv run python -c "
       from db.session import engine;
       from features.engineering import FeatureEngineer;
       from features.store import save_features;
@@ -18,11 +20,12 @@ stages:
           sales = pd.read_sql(text('SELECT * FROM daily_sales'), conn);
           products = pd.read_sql(text('SELECT * FROM products'), conn);
           inventory = pd.read_sql(text('SELECT * FROM inventory_snapshots'), conn);
-      fe = FeatureEngineer(sales, products, inventory);
+          stores = pd.read_sql(text('SELECT * FROM stores'), conn);
+      fe = FeatureEngineer(sales, products, inventory, stores);
       df = fe.build();
       save_features(df, engine);
       print(f'Saved {len(df)} feature rows')
-      "
+      " && echo "features built" > artifacts/features.done
     deps:
       - artifacts/seed.done
       - features/engineering.py

@@ -5,6 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Response
+from sqlalchemy import text
 
 from api.dependencies import get_model_manager, get_redis, ModelManager
 from api.schemas import HealthResponse, ReadyResponse
@@ -30,7 +31,7 @@ async def ready(mm: ModelManager = Depends(get_model_manager)):
 
     try:
         with engine.connect() as conn:
-            conn.execute(__import__("sqlalchemy").text("SELECT 1"))
+            conn.execute(text("SELECT 1"))
         checks["database"] = "connected"
     except Exception:
         checks["database"] = "connection_refused"
