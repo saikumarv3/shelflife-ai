@@ -78,18 +78,30 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 # ── Request Logging ──────────────────────────────────────────
 
 
+PREDICTION_PATHS = {"/predict/demand", "/predict/batch", "/predict/waste-risk", "/recommend"}
+
+
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
+        from monitoring.metrics import PREDICTION_REQUESTS, PREDICTION_LATENCY
+
         request_id = str(uuid.uuid4())[:8]
         start = time.perf_counter()
 
         response = await call_next(request)
 
-        latency_ms = (time.perf_counter() - start) * 1000
+        latency_s = time.perf_counter() - start
+        latency_ms = latency_s * 1000
+        path = request.url.path
+
+        if path in PREDICTION_PATHS:
+            PREDICTION_REQUESTS.labels(endpoint=path, status=str(response.status_code)).inc()
+            PREDICTION_LATENCY.labels(endpoint=path).observe(latency_s)
+
         log_data = {
             "request_id": f"req_{request_id}",
             "method": request.method,
-            "path": request.url.path,
+            "path": path,
             "status_code": response.status_code,
             "latency_ms": round(latency_ms, 1),
             "client_ip": request.client.host if request.client else None,

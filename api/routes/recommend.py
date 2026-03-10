@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from api.dependencies import get_db, get_model_manager, ModelManager
 from api.schemas import RecommendRequest, RecommendResponse, Recommendation, ActionImpact
+from monitoring.metrics import RECOMMENDATIONS_GENERATED
 from recommendation.engine import RecommendationEngine
 
 router = APIRouter(tags=["Recommendations"])
@@ -88,6 +89,9 @@ async def recommend(
         )
         for r in raw_recs
     ]
+
+    for rec in recommendations:
+        RECOMMENDATIONS_GENERATED.labels(action_type=rec.action).inc()
 
     return RecommendResponse(
         store_id=req.store_id,

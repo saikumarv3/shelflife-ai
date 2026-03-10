@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 from contextlib import asynccontextmanager
 
+from apscheduler.schedulers.background import BackgroundScheduler
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -12,6 +13,7 @@ from api.dependencies import get_model_manager
 from api.middleware import AuthMiddleware, RateLimitMiddleware, RequestLoggingMiddleware
 from api.routes import forecast, health, inventory, recommend, waste
 from config.settings import settings
+from monitoring.metrics import MODEL_VERSION
 
 logging.basicConfig(
     level=getattr(logging, settings.log_level.upper(), logging.INFO),
@@ -19,14 +21,54 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+scheduler = BackgroundScheduler()
+
+
+def _job_daily_forecast():
+    from scripts.run_daily_forecast import run
+    run()
+
+
+def _job_drift_check():
+    from mlops.drift_detection import run_drift_check
+    from db.session import engine
+    run_drift_check(engine)
+
+
+def _job_feedback():
+    from scripts.run_feedback import run
+    run()
+
+
+def _job_retrain():
+    from mlops.retrain import should_retrain, retrain_and_validate
+    from db.session import engine
+    triggers = should_retrain(engine)
+    if triggers["should_retrain"]:
+        retrain_and_validate(engine)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting ShelfLife AI API...")
     mm = get_model_manager()
     mm.load()
+    if mm.is_loaded:
+        MODEL_VERSION.labels(
+            model_name=settings.demand_model_name, version=mm.model_version
+        ).set(1)
     logger.info("Models loaded: %s", mm.is_loaded)
+
+    scheduler.add_job(_job_daily_forecast, "cron", hour=6, minute=0, id="daily_forecast")
+    scheduler.add_job(_job_drift_check, "cron", hour=23, minute=0, id="drift_check")
+    scheduler.add_job(_job_feedback, "cron", hour=23, minute=30, id="feedback")
+    scheduler.add_job(_job_retrain, "cron", day_of_week="sun", hour=2, minute=0, id="retrain")
+    scheduler.start()
+    logger.info("Scheduler started with 4 jobs")
+
     yield
+
+    scheduler.shutdown(wait=False)
     logger.info("Shutting down ShelfLife AI API...")
 
 

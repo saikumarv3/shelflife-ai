@@ -19,6 +19,7 @@ from api.schemas import (
 )
 from config.settings import settings
 from features.engineering import FeatureEngineer
+from monitoring.metrics import CACHE_HITS, CACHE_MISSES
 
 router = APIRouter(prefix="/predict", tags=["Forecast"])
 
@@ -72,6 +73,7 @@ async def predict_demand(
         r = get_redis()
         cached = r.get(cache_k)
         if cached:
+            CACHE_HITS.inc()
             data = json.loads(cached)
             data["cached"] = True
             data["latency_ms"] = round((time.perf_counter() - start) * 1000, 1)
@@ -79,6 +81,7 @@ async def predict_demand(
     except Exception:
         pass
 
+    CACHE_MISSES.inc()
     X = _build_feature_vector(db, req, mm)
     result = mm.predict_demand(X)
 
