@@ -44,6 +44,42 @@ services:
       retries: 5
       start_period: 15s
 
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql://shelflife:shelflife@postgres:5432/shelflife"
+      REDIS_URL: "redis://redis:6379/0"
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      API_KEY: "shelflife-dev-key-2024"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mlflow:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      retries: 5
+      start_period: 20s
+
+  dashboard:
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+    ports:
+      - "8501:8501"
+    environment:
+      DATABASE_URL: "postgresql://shelflife:shelflife@postgres:5432/shelflife"
+    depends_on:
+      api:
+        condition: service_healthy
+
 volumes:
   pgdata:
   mlflow_data:
