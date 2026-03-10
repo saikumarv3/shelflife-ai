@@ -16,4 +16,4 @@ ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 
 EXPOSE 8000
-CMD ["gunicorn", "api.main:app", "-k", "uvicorn.workers.UvicornWorker", "--workers", "4", "--bind", "0.0.0.0:8000", "--timeout", "120"]
+CMD ["sh", "-c", "gunicorn api.main:app -k uvicorn.workers.UvicornWorker --workers ${API_WORKERS:-2} --bind 0.0.0.0:8000 --timeout 120"]

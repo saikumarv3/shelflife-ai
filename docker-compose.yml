@@ -57,6 +57,10 @@ services:
       REDIS_URL: "redis://redis:6379/0"
       MLFLOW_TRACKING_URI: "http://mlflow:5000"
       API_KEY: "shelflife-dev-key-2024"
+      API_WORKERS: "2"
+      CORS_ORIGINS: "http://localhost:8501,http://dashboard:8501"
+    volumes:
+      - model_artifacts:/app/artifacts
     depends_on:
       postgres:
         condition: service_healthy
@@ -78,6 +82,8 @@ services:
       - "8501:8501"
     environment:
       DATABASE_URL: "postgresql://shelflife:shelflife@postgres:5432/shelflife"
+      REDIS_URL: "redis://redis:6379/0"
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
     depends_on:
       api:
         condition: service_healthy
@@ -85,3 +91,4 @@ services:
 volumes:
   pgdata:
   mlflow_data:
+  model_artifacts:

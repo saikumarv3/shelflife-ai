@@ -69,6 +69,7 @@ Monitoring → Prometheus metrics, drift detection (PSI/KS), auto-retraining
 ```bash
 # Clone and install
 git clone <repo-url> && cd shelflife-ai
+cp .env.example .env        # copy environment config (edit if needed)
 uv sync
 
 # Start infrastructure
@@ -178,6 +179,15 @@ uv run python -m scripts.run_daily_forecast
 
 # Compute feedback MAPE
 uv run python -m scripts.run_feedback
+
+# List all model versions
+uv run python -m scripts.rollback_model --list
+
+# Roll back a model to a previous version
+uv run python -m scripts.rollback_model --model shelflife-demand-forecast --to-version 3
+
+# Roll back both demand + waste models
+uv run python -m scripts.rollback_model --all --to-version 3
 ```
 
 ---

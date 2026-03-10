@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import time
+from datetime import date as _date
 
 import numpy as np
 from fastapi import APIRouter, Depends, HTTPException
@@ -26,6 +27,13 @@ router = APIRouter(prefix="/predict", tags=["Forecast"])
 
 def _cache_key(store_id: int, product_id: int, date_str: str) -> str:
     return f"demand:{store_id}:{product_id}:{date_str}"
+
+
+def _cache_ttl(prediction_date: _date) -> int:
+    """Return TTL in seconds: shorter for today (data may update), longer for future dates."""
+    if prediction_date > _date.today():
+        return settings.cache_ttl_future
+    return settings.cache_ttl_same_day
 
 
 def _build_feature_vector(db: Session, req: DemandRequest, mm: ModelManager) -> np.ndarray:
@@ -99,7 +107,7 @@ async def predict_demand(
 
     try:
         r = get_redis()
-        r.setex(cache_k, settings.cache_ttl_same_day, json.dumps(response_data))
+        r.setex(cache_k, _cache_ttl(req.date), json.dumps(response_data))
     except Exception:
         pass
 
@@ -154,7 +162,7 @@ async def predict_batch(
 
         try:
             r = get_redis()
-            r.setex(cache_k, settings.cache_ttl_same_day, resp.model_dump_json())
+            r.setex(cache_k, _cache_ttl(item.date), resp.model_dump_json())
         except Exception:
             pass
 
