@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.venv/
+
+# ML model artifacts (large binary files — stored in MLflow/DVC)
+artifacts/
+*.joblib
+*.pkl
+
+# Environment
+.env
+
+# Data (tracked by DVC, not git)
+data/raw/
+data/processed/
+data/models/
+data/metrics/
+
+# MLflow local artifacts
+mlflow-artifacts/
+mlruns/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Docker volumes
+pgdata/
+
+# DVC
+/data/*.csv
+/data/*.parquet
+
+# uv
+uv.lock
