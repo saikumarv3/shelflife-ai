@@ -1,0 +1,76 @@
+name: ShelfLife AI CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.12"
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+
+  test:
+    name: Test
+    runs-on: ubuntu-latest
+    needs: lint
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: shelflife_test
+          POSTGRES_USER: shelflife
+          POSTGRES_PASSWORD: shelflife
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://shelflife:shelflife@localhost:5432/shelflife_test
+      REDIS_URL: redis://localhost:6379/0
+      API_KEY: test-key-ci
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --frozen
+      - name: Seed database
+        run: uv run python -m db.seed
+      - name: Train models
+        run: uv run python -m mlops.train_pipeline
+        env:
+          PYTHONIOENCODING: utf-8
+      - name: Run tests
+        run: uv run pytest tests/ -v --tb=short
+
+  docker:
+    name: Docker Build
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build API image
+        run: docker build -t shelflife-api:ci .
+      - name: Build Dashboard image
+        run: docker build -f Dockerfile.dashboard -t shelflife-dashboard:ci .
