@@ -1,0 +1,140 @@
+# Production Docker Compose — Hetzner + Coolify
+#
+# This file is used when running the full stack on a single Hetzner server.
+# Images are pulled from GHCR (pre-built by GitHub Actions).
+#
+# Usage:
+#   docker compose -f docker-compose.prod.yml up -d
+#
+# Coolify manages this automatically — you do NOT run this manually.
+# It is here for reference and local production testing.
+
+services:
+
+  # ── PostgreSQL ─────────────────────────────────────────────────
+  postgres:
+    image: postgres:16
+    restart: always
+    environment:
+      POSTGRES_DB: shelflife
+      POSTGRES_USER: ${POSTGRES_USER:-shelflife}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}     # required — set in Coolify env vars
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U shelflife
+      interval: 10s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "1.0"
+
+  # ── Redis ──────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: redis-server --maxmemory 256mb --maxmemory-policy allkeys-lru
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: redis-cli ping
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 300M
+          cpus: "0.5"
+
+  # ── MLflow ─────────────────────────────────────────────────────
+  mlflow:
+    image: ghcr.io/mlflow/mlflow:v3.10.1
+    restart: always
+    ports:
+      - "5001:5000"
+    environment:
+      MLFLOW_BACKEND_STORE_URI: "sqlite:///mlflow/mlflow.db"
+      MLFLOW_DEFAULT_ARTIFACT_ROOT: "/mlflow/artifacts"
+    volumes:
+      - mlflow_data:/mlflow
+    command: >
+      mlflow server
+      --host 0.0.0.0
+      --port 5000
+      --backend-store-uri sqlite:///mlflow/mlflow.db
+      --default-artifact-root /mlflow/artifacts
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:5000/health')"]
+      interval: 15s
+      retries: 5
+      start_period: 20s
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+          cpus: "0.5"
+
+  # ── API ────────────────────────────────────────────────────────
+  api:
+    # Image is pulled from GHCR — built by GitHub Actions on every push to main
+    image: ghcr.io/${GITHUB_USERNAME}/shelflife-api:latest
+    restart: always
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-shelflife}:${POSTGRES_PASSWORD}@postgres:5432/shelflife"
+      REDIS_URL: "redis://redis:6379/0"
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      API_KEY: ${API_KEY}
+      API_WORKERS: ${API_WORKERS:-2}
+      CORS_ORIGINS: "https://${DASHBOARD_DOMAIN},http://localhost:8501"
+      LOG_LEVEL: "INFO"
+      RATE_LIMIT_PER_MINUTE: "100"
+    volumes:
+      - model_artifacts:/app/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mlflow:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 15s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 600M
+          cpus: "1.5"
+
+  # ── Dashboard ──────────────────────────────────────────────────
+  dashboard:
+    image: ghcr.io/${GITHUB_USERNAME}/shelflife-dashboard:latest
+    restart: always
+    ports:
+      - "8501:8501"
+    environment:
+      DATABASE_URL: "postgresql://${POSTGRES_USER:-shelflife}:${POSTGRES_PASSWORD}@postgres:5432/shelflife"
+      REDIS_URL: "redis://redis:6379/0"
+      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+    depends_on:
+      api:
+        condition: service_healthy
+    deploy:
+      resources:
+        limits:
+          memory: 400M
+          cpus: "1.0"
+
+volumes:
+  pgdata:
+  redisdata:
+  mlflow_data:
+  model_artifacts:

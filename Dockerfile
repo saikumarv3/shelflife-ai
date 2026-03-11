@@ -15,5 +15,12 @@ COPY --from=builder /app /app
 ENV PATH="/app/.venv/bin:$PATH" \
     PYTHONUNBUFFERED=1
 
+# Run as non-root user for security
+RUN useradd --create-home --shell /bin/bash appuser \
+ && chown -R appuser:appuser /app
+USER appuser
+
 EXPOSE 8000
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"
 CMD ["sh", "-c", "gunicorn api.main:app -k uvicorn.workers.UvicornWorker --workers ${API_WORKERS:-2} --bind 0.0.0.0:8000 --timeout 120"]
