@@ -12,6 +12,7 @@ name: ShelfLife AI — Deploy to Production
 on:
   push:
     branches: [main]
+  workflow_dispatch:   # allows manual trigger from GitHub Actions UI
 
 env:
   PYTHON_VERSION: "3.12"
