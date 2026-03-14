@@ -18,19 +18,21 @@ from config.settings import settings
 class WasteRiskClassifier:
     """Binary waste risk classifier using XGBoost."""
 
-    params: dict = field(default_factory=lambda: {
-        "n_estimators": 300,
-        "max_depth": 6,
-        "learning_rate": 0.05,
-        "subsample": 0.8,
-        "colsample_bytree": 0.8,
-        "min_child_weight": 3,
-        "reg_alpha": 0.01,
-        "reg_lambda": 1.5,
-        "random_state": settings.random_seed,
-        "n_jobs": -1,
-        "eval_metric": "logloss",
-    })
+    params: dict = field(
+        default_factory=lambda: {
+            "n_estimators": 300,
+            "max_depth": 6,
+            "learning_rate": 0.05,
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "min_child_weight": 3,
+            "reg_alpha": 0.01,
+            "reg_lambda": 1.5,
+            "random_state": settings.random_seed,
+            "n_jobs": -1,
+            "eval_metric": "logloss",
+        }
+    )
     model: XGBClassifier | None = field(default=None, repr=False)
 
     RISK_TIERS = [
@@ -47,9 +49,8 @@ class WasteRiskClassifier:
         for this store-product group.
         """
         df = sales_df.sort_values(["store_id", "product_id", "date"]).copy()
-        df["_future_waste"] = (
-            df.groupby(["store_id", "product_id"])["units_wasted"]
-            .transform(lambda x: x.shift(-1).rolling(3, min_periods=1).sum())
+        df["_future_waste"] = df.groupby(["store_id", "product_id"])["units_wasted"].transform(
+            lambda x: x.shift(-1).rolling(3, min_periods=1).sum()
         )
         return (df["_future_waste"] > 0).astype(int)
 

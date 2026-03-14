@@ -7,7 +7,7 @@ import logging
 
 from config.settings import settings
 from db.session import engine
-from monitoring.feedback import compute_rolling_mape, check_mape_threshold
+from monitoring.feedback import check_mape_threshold, compute_rolling_mape
 from monitoring.metrics import FORECAST_MAPE_7D
 
 logger = logging.getLogger(__name__)

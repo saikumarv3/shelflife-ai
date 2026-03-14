@@ -16,16 +16,27 @@ def test_ready(client, auth_headers):
 
 
 def test_auth_required(client):
-    r = client.post("/predict/demand", json={
-        "store_id": 1, "product_id": 1, "date": "2024-12-15",
-    })
+    r = client.post(
+        "/predict/demand",
+        json={
+            "store_id": 1,
+            "product_id": 1,
+            "date": "2024-12-15",
+        },
+    )
     assert r.status_code == 401
 
 
 def test_predict_demand(client, auth_headers):
-    r = client.post("/predict/demand", headers=auth_headers, json={
-        "store_id": 1, "product_id": 1, "date": "2024-12-15",
-    })
+    r = client.post(
+        "/predict/demand",
+        headers=auth_headers,
+        json={
+            "store_id": 1,
+            "product_id": 1,
+            "date": "2024-12-15",
+        },
+    )
     assert r.status_code in (200, 404, 503)
     if r.status_code == 200:
         body = r.json()
@@ -35,22 +46,33 @@ def test_predict_demand(client, auth_headers):
 
 
 def test_predict_batch(client, auth_headers):
-    r = client.post("/predict/batch", headers=auth_headers, json={
-        "predictions": [
-            {"store_id": 1, "product_id": 1, "date": "2024-12-15"},
-            {"store_id": 1, "product_id": 2, "date": "2024-12-15"},
-        ]
-    })
+    r = client.post(
+        "/predict/batch",
+        headers=auth_headers,
+        json={
+            "predictions": [
+                {"store_id": 1, "product_id": 1, "date": "2024-12-15"},
+                {"store_id": 1, "product_id": 2, "date": "2024-12-15"},
+            ]
+        },
+    )
     assert r.status_code in (200, 503)
     if r.status_code == 200:
         assert r.json()["total_items"] == 2
 
 
 def test_predict_waste_risk(client, auth_headers):
-    r = client.post("/predict/waste-risk", headers=auth_headers, json={
-        "store_id": 1, "product_id": 1, "date": "2024-12-15",
-        "current_stock": 45, "days_until_expiry": 3,
-    })
+    r = client.post(
+        "/predict/waste-risk",
+        headers=auth_headers,
+        json={
+            "store_id": 1,
+            "product_id": 1,
+            "date": "2024-12-15",
+            "current_stock": 45,
+            "days_until_expiry": 3,
+        },
+    )
     assert r.status_code in (200, 404, 503)
     if r.status_code == 200:
         body = r.json()
@@ -59,9 +81,15 @@ def test_predict_waste_risk(client, auth_headers):
 
 
 def test_recommend(client, auth_headers):
-    r = client.post("/recommend", headers=auth_headers, json={
-        "store_id": 1, "product_id": 1, "date": "2024-12-15",
-    })
+    r = client.post(
+        "/recommend",
+        headers=auth_headers,
+        json={
+            "store_id": 1,
+            "product_id": 1,
+            "date": "2024-12-15",
+        },
+    )
     assert r.status_code in (200, 404, 503)
 
 
@@ -75,9 +103,15 @@ def test_inventory(client, auth_headers):
 
 
 def test_validation_error(client, auth_headers):
-    r = client.post("/predict/demand", headers=auth_headers, json={
-        "store_id": -1, "product_id": 1, "date": "2024-12-15",
-    })
+    r = client.post(
+        "/predict/demand",
+        headers=auth_headers,
+        json={
+            "store_id": -1,
+            "product_id": 1,
+            "date": "2024-12-15",
+        },
+    )
     assert r.status_code == 422
 
 

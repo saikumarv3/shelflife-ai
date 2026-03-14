@@ -16,14 +16,19 @@ from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
 from config.settings import settings
-from monitoring.metrics import DRIFT_PSI, DRIFT_ALERT
+from monitoring.metrics import DRIFT_ALERT, DRIFT_PSI
 
 logger = logging.getLogger(__name__)
 
 CRITICAL_FEATURES = [
-    "sales_lag_1d", "sales_lag_7d", "sales_rolling_7d_mean",
-    "sales_rolling_28d_mean", "waste_rolling_7d_rate",
-    "stock_to_sales_ratio", "temperature_avg", "promotion_discount",
+    "sales_lag_1d",
+    "sales_lag_7d",
+    "sales_rolling_7d_mean",
+    "sales_rolling_28d_mean",
+    "waste_rolling_7d_rate",
+    "stock_to_sales_ratio",
+    "temperature_avg",
+    "promotion_discount",
 ]
 
 
@@ -73,6 +78,7 @@ def run_drift_check(
     threshold = psi_threshold or settings.drift_psi_threshold
     recent_start = date.today() - timedelta(days=recent_days)
     from mlops.train_pipeline import TrainPipeline
+
     train_cutoff = TrainPipeline.TRAIN_CUTOFF
 
     results: dict[str, dict] = {}
@@ -80,25 +86,35 @@ def run_drift_check(
 
     with engine.connect() as conn:
         for feature in CRITICAL_FEATURES:
-            train_rows = conn.execute(
-                text(
-                    f"SELECT {feature} FROM feature_store "
-                    f"WHERE date < :cutoff AND {feature} IS NOT NULL"
-                ),
-                {"cutoff": train_cutoff},
-            ).scalars().all()
+            train_rows = (
+                conn.execute(
+                    text(
+                        f"SELECT {feature} FROM feature_store "
+                        f"WHERE date < :cutoff AND {feature} IS NOT NULL"
+                    ),
+                    {"cutoff": train_cutoff},
+                )
+                .scalars()
+                .all()
+            )
 
-            recent_rows = conn.execute(
-                text(
-                    f"SELECT {feature} FROM feature_store "
-                    f"WHERE date >= :start_dt AND {feature} IS NOT NULL"
-                ),
-                {"start_dt": recent_start},
-            ).scalars().all()
+            recent_rows = (
+                conn.execute(
+                    text(
+                        f"SELECT {feature} FROM feature_store "
+                        f"WHERE date >= :start_dt AND {feature} IS NOT NULL"
+                    ),
+                    {"start_dt": recent_start},
+                )
+                .scalars()
+                .all()
+            )
 
             if len(train_rows) < 10 or len(recent_rows) < 10:
                 results[feature] = {
-                    "psi": 0.0, "drifted": False, "reason": "insufficient_data",
+                    "psi": 0.0,
+                    "drifted": False,
+                    "reason": "insufficient_data",
                 }
                 continue
 
@@ -122,7 +138,9 @@ def run_drift_check(
                 any_drifted = True
                 logger.warning(
                     "DRIFT DETECTED: %s  PSI=%.4f, KS p=%.4f",
-                    feature, psi, ks["p_value"],
+                    feature,
+                    psi,
+                    ks["p_value"],
                 )
 
     if any_drifted:
@@ -144,8 +162,7 @@ def _insert_drift_alert(engine: Engine, results: dict) -> None:
             {
                 "sev": "high" if len(drifted) > 2 else "medium",
                 "msg": (
-                    f"Data drift detected in {len(drifted)} feature(s): "
-                    f"{', '.join(drifted.keys())}"
+                    f"Data drift detected in {len(drifted)} feature(s): {', '.join(drifted.keys())}"
                 ),
                 "meta": json.dumps({k: v for k, v in drifted.items()}),
             },

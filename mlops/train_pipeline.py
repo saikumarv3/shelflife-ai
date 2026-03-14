@@ -29,14 +29,14 @@ from config.settings import settings
 from db.session import engine
 from features.engineering import FeatureEngineer
 from features.store import save_features
+from mlops.model_registry import ModelRegistry
 from models.demand_forecast import DemandForecaster
-from models.waste_risk import WasteRiskClassifier
 from models.evaluation import (
+    compute_baselines,
     evaluate_forecast,
     evaluate_waste_risk,
-    compute_baselines,
 )
-from mlops.model_registry import ModelRegistry
+from models.waste_risk import WasteRiskClassifier
 
 logger = logging.getLogger(__name__)
 
@@ -73,11 +73,15 @@ class TrainPipeline:
             X_train, y_train, X_val, y_val, X_test, y_test, test_meta = self._split(feat_df)
 
             # Step 4: Demand forecast
-            demand_metrics = self._train_demand(X_train, y_train, X_val, y_val, X_test, y_test, test_meta, run_id)
+            demand_metrics = self._train_demand(
+                X_train, y_train, X_val, y_val, X_test, y_test, test_meta, run_id
+            )
 
             # Step 5: Waste risk
             waste_labels = WasteRiskClassifier.build_labels(sales_df)
-            waste_metrics = self._train_waste_risk(feat_df, waste_labels, X_train, X_val, X_test, run_id)
+            waste_metrics = self._train_waste_risk(
+                feat_df, waste_labels, X_train, X_val, X_test, run_id
+            )
 
             # Step 6: Baselines
             baselines = self._compute_baselines(feat_df, y_test, X_test)
@@ -94,24 +98,31 @@ class TrainPipeline:
                 "val_size": len(X_val),
                 "test_size": len(X_test),
             }
-            mlflow.log_metrics({
-                "pipeline_elapsed_s": elapsed,
-                "train_size": len(X_train),
-                "val_size": len(X_val),
-                "test_size": len(X_test),
-            })
+            mlflow.log_metrics(
+                {
+                    "pipeline_elapsed_s": elapsed,
+                    "train_size": len(X_train),
+                    "val_size": len(X_val),
+                    "test_size": len(X_test),
+                }
+            )
 
         # Write metrics for DVC tracking
         metrics_path = Path("artifacts/train_metrics.json")
         metrics_path.parent.mkdir(exist_ok=True)
-        metrics_path.write_text(json.dumps({
-            "demand_mape": demand_metrics.get("mape"),
-            "demand_rmse": demand_metrics.get("rmse"),
-            "waste_auc_roc": waste_metrics.get("auc_roc"),
-            "waste_f1": waste_metrics.get("f1"),
-            "naive_lag7_mape": baselines.get("naive_lag7_mape"),
-            "elapsed_seconds": round(elapsed, 1),
-        }, indent=2))
+        metrics_path.write_text(
+            json.dumps(
+                {
+                    "demand_mape": demand_metrics.get("mape"),
+                    "demand_rmse": demand_metrics.get("rmse"),
+                    "waste_auc_roc": waste_metrics.get("auc_roc"),
+                    "waste_f1": waste_metrics.get("f1"),
+                    "naive_lag7_mape": baselines.get("naive_lag7_mape"),
+                    "elapsed_seconds": round(elapsed, 1),
+                },
+                indent=2,
+            )
+        )
 
         logger.info("PIPELINE COMPLETE in %.1fs — run_id=%s", elapsed, run_id)
         self._print_summary(summary)
@@ -122,13 +133,22 @@ class TrainPipeline:
     def _extract_data(self):
         logger.info("[1/7] Extracting data from PostgreSQL...")
         with engine.connect() as conn:
-            sales_df = pd.read_sql(text("SELECT * FROM daily_sales ORDER BY store_id, product_id, date"), conn)
+            sales_df = pd.read_sql(
+                text("SELECT * FROM daily_sales ORDER BY store_id, product_id, date"), conn
+            )
             products_df = pd.read_sql(text("SELECT * FROM products"), conn)
-            inventory_df = pd.read_sql(text("SELECT * FROM inventory_snapshots ORDER BY store_id, product_id, date"), conn)
+            inventory_df = pd.read_sql(
+                text("SELECT * FROM inventory_snapshots ORDER BY store_id, product_id, date"), conn
+            )
             stores_df = pd.read_sql(text("SELECT * FROM stores"), conn)
 
-        logger.info("  Sales: %d rows | Products: %d | Inventory: %d | Stores: %d",
-                     len(sales_df), len(products_df), len(inventory_df), len(stores_df))
+        logger.info(
+            "  Sales: %d rows | Products: %d | Inventory: %d | Stores: %d",
+            len(sales_df),
+            len(products_df),
+            len(inventory_df),
+            len(stores_df),
+        )
         return sales_df, products_df, inventory_df, stores_df
 
     # ── Step 2: Features ───────────────────────────────────────
@@ -139,8 +159,12 @@ class TrainPipeline:
         feat_df = fe.build()
 
         saved = save_features(feat_df, engine, if_exists="replace")
-        logger.info("  Feature matrix: %d rows × %d cols → saved %d to feature_store",
-                     len(feat_df), len(feat_df.columns), saved)
+        logger.info(
+            "  Feature matrix: %d rows × %d cols → saved %d to feature_store",
+            len(feat_df),
+            len(feat_df.columns),
+            saved,
+        )
         mlflow.log_metric("feature_count", len(FeatureEngineer.FEATURE_COLUMNS))
         mlflow.log_metric("feature_rows", len(feat_df))
         return feat_df
@@ -148,8 +172,11 @@ class TrainPipeline:
     # ── Step 3: Split ──────────────────────────────────────────
 
     def _split(self, feat_df: pd.DataFrame):
-        logger.info("[3/7] Time-based split: train < %s | val < %s | test = rest",
-                     self.TRAIN_CUTOFF, self.VAL_CUTOFF)
+        logger.info(
+            "[3/7] Time-based split: train < %s | val < %s | test = rest",
+            self.TRAIN_CUTOFF,
+            self.VAL_CUTOFF,
+        )
 
         feature_cols = FeatureEngineer.FEATURE_COLUMNS
         target = "quantity_sold"
@@ -168,14 +195,18 @@ class TrainPipeline:
         X_test = feat_df.loc[test_mask, feature_cols].values.astype(np.float32)
         y_test = feat_df.loc[test_mask, target].values.astype(np.float32)
 
-        test_meta = feat_df.loc[test_mask, ["store_id", "product_id", "date", "unit_price", "cost_price"]].copy()
+        test_meta = feat_df.loc[
+            test_mask, ["store_id", "product_id", "date", "unit_price", "cost_price"]
+        ].copy()
 
         logger.info("  Train: %d | Val: %d | Test: %d", len(X_train), len(X_val), len(X_test))
         return X_train, y_train, X_val, y_val, X_test, y_test, test_meta
 
     # ── Step 4: Demand forecast ─────────────────────────────────
 
-    def _train_demand(self, X_train, y_train, X_val, y_val, X_test, y_test, test_meta, run_id) -> dict:
+    def _train_demand(
+        self, X_train, y_train, X_val, y_val, X_test, y_test, test_meta, run_id
+    ) -> dict:
         logger.info("[4/7] Training demand forecast (XGBoost + LightGBM ensemble)...")
         forecaster = DemandForecaster()
         forecaster.train(X_train, y_train, X_val, y_val)
@@ -188,9 +219,14 @@ class TrainPipeline:
 
         for k, v in metrics.items():
             mlflow.log_metric(f"demand_{k}", v)
-        logger.info("  RMSE=%.2f | MAE=%.2f | MAPE=%.4f | R²=%.4f | BizCost=$%.2f",
-                     metrics["rmse"], metrics["mae"], metrics["mape"], metrics["r2"],
-                     metrics.get("business_cost", 0))
+        logger.info(
+            "  RMSE=%.2f | MAE=%.2f | MAPE=%.4f | R²=%.4f | BizCost=$%.2f",
+            metrics["rmse"],
+            metrics["mae"],
+            metrics["mape"],
+            metrics["r2"],
+            metrics.get("business_cost", 0),
+        )
 
         top_feats = forecaster.get_feature_importance(FeatureEngineer.FEATURE_COLUMNS)
         top5 = list(top_feats.items())[:5]
@@ -203,7 +239,6 @@ class TrainPipeline:
 
     def _train_waste_risk(self, feat_df, waste_labels, X_train, X_val, X_test, run_id) -> dict:
         logger.info("[5/7] Training waste risk classifier...")
-        feature_cols = FeatureEngineer.FEATURE_COLUMNS
         feat_df["date"] = pd.to_datetime(feat_df["date"])
 
         train_mask = feat_df["date"] < self.TRAIN_CUTOFF
@@ -216,16 +251,24 @@ class TrainPipeline:
 
         classifier = WasteRiskClassifier()
         train_info = classifier.train(X_train, y_waste_train, X_val, y_waste_val)
-        logger.info("  Pos rate: %.2f%% | scale_pos_weight: %.2f",
-                     train_info["pos_rate"] * 100, train_info["scale_pos_weight"])
+        logger.info(
+            "  Pos rate: %.2f%% | scale_pos_weight: %.2f",
+            train_info["pos_rate"] * 100,
+            train_info["scale_pos_weight"],
+        )
 
         y_proba = classifier.predict_proba(X_test)
         metrics = evaluate_waste_risk(y_waste_test, y_proba)
 
         for k, v in metrics.items():
             mlflow.log_metric(f"waste_{k}", v)
-        logger.info("  Precision=%.4f | Recall=%.4f | F1=%.4f | AUC-ROC=%.4f",
-                     metrics["precision"], metrics["recall"], metrics["f1"], metrics["auc_roc"])
+        logger.info(
+            "  Precision=%.4f | Recall=%.4f | F1=%.4f | AUC-ROC=%.4f",
+            metrics["precision"],
+            metrics["recall"],
+            metrics["f1"],
+            metrics["auc_roc"],
+        )
 
         self.registry.save_model(classifier, settings.waste_model_name, run_id)
         return metrics
@@ -257,7 +300,9 @@ class TrainPipeline:
         print("=" * 60)
         print(f"  Run ID:        {summary['run_id'][:12]}...")
         print(f"  Elapsed:       {summary['elapsed_seconds']}s")
-        print(f"  Data split:    {summary['train_size']} / {summary['val_size']} / {summary['test_size']}")
+        print(
+            f"  Data split:    {summary['train_size']} / {summary['val_size']} / {summary['test_size']}"
+        )
         print()
         print("  DEMAND FORECAST:")
         for k, v in summary["demand"].items():

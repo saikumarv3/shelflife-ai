@@ -20,10 +20,10 @@ from sqlalchemy.engine import Engine
 from config.settings import settings
 from db.session import engine as default_engine
 from features.engineering import FeatureEngineer
+from mlops.model_registry import ARTIFACTS_DIR, ModelRegistry
 from models.demand_forecast import DemandForecaster
-from models.waste_risk import WasteRiskClassifier
 from models.evaluation import evaluate_forecast, evaluate_waste_risk
-from mlops.model_registry import ModelRegistry, ARTIFACTS_DIR
+from models.waste_risk import WasteRiskClassifier
 from monitoring.metrics import RETRAIN_RUNS
 
 logger = logging.getLogger(__name__)
@@ -34,37 +34,50 @@ def should_retrain(engine: Engine) -> dict:
     triggers = {"schedule": False, "drift": False, "mape_degraded": False}
 
     with engine.connect() as conn:
-        last_alert = conn.execute(
-            text("""
+        last_alert = (
+            conn.execute(
+                text("""
                 SELECT created_at FROM alerts
                 WHERE alert_type = 'model_promoted'
                 ORDER BY created_at DESC LIMIT 1
             """)
-        ).mappings().first()
+            )
+            .mappings()
+            .first()
+        )
 
     if last_alert:
-        days_since = (datetime.now(timezone.utc).replace(tzinfo=None) - last_alert["created_at"]).days
+        days_since = (
+            datetime.now(timezone.utc).replace(tzinfo=None) - last_alert["created_at"]
+        ).days
         triggers["schedule"] = days_since >= settings.retrain_schedule_days
     else:
         triggers["schedule"] = True
 
     with engine.connect() as conn:
-        drift_alert = conn.execute(
-            text("""
+        drift_alert = (
+            conn.execute(
+                text("""
                 SELECT alert_id FROM alerts
                 WHERE alert_type = 'data_drift' AND acknowledged = false
                 ORDER BY created_at DESC LIMIT 1
             """)
-        ).mappings().first()
+            )
+            .mappings()
+            .first()
+        )
     triggers["drift"] = drift_alert is not None
 
     from monitoring.feedback import check_mape_threshold
+
     for store_id in range(1, settings.num_stores + 1):
         if check_mape_threshold(engine, store_id, settings.mape_alert_threshold):
             triggers["mape_degraded"] = True
             break
 
-    triggers["should_retrain"] = any([triggers["schedule"], triggers["drift"], triggers["mape_degraded"]])
+    triggers["should_retrain"] = any(
+        [triggers["schedule"], triggers["drift"], triggers["mape_degraded"]]
+    )
     return triggers
 
 
@@ -77,9 +90,13 @@ def retrain_and_validate(engine: Engine | None = None) -> dict:
     logger.info("=" * 50)
 
     with engine.connect() as conn:
-        sales_df = pd.read_sql(text("SELECT * FROM daily_sales ORDER BY store_id, product_id, date"), conn)
+        sales_df = pd.read_sql(
+            text("SELECT * FROM daily_sales ORDER BY store_id, product_id, date"), conn
+        )
         products_df = pd.read_sql(text("SELECT * FROM products"), conn)
-        inventory_df = pd.read_sql(text("SELECT * FROM inventory_snapshots ORDER BY store_id, product_id, date"), conn)
+        inventory_df = pd.read_sql(
+            text("SELECT * FROM inventory_snapshots ORDER BY store_id, product_id, date"), conn
+        )
         stores_df = pd.read_sql(text("SELECT * FROM stores"), conn)
 
     logger.info("Data: %d sales, %d products", len(sales_df), len(products_df))
@@ -113,19 +130,26 @@ def retrain_and_validate(engine: Engine | None = None) -> dict:
 
     test_meta = feat_df.loc[test_mask, ["unit_price", "cost_price"]].copy()
     new_metrics = evaluate_forecast(
-        y_test, new_pred,
+        y_test,
+        new_pred,
         test_meta["unit_price"].values.astype(float),
         test_meta["cost_price"].values.astype(float),
     )
-    logger.info("New model: RMSE=%.2f, MAPE=%.4f, R²=%.4f",
-                 new_metrics["rmse"], new_metrics["mape"], new_metrics["r2"])
+    logger.info(
+        "New model: RMSE=%.2f, MAPE=%.4f, R²=%.4f",
+        new_metrics["rmse"],
+        new_metrics["mape"],
+        new_metrics["r2"],
+    )
 
     # Train new waste model
     waste_labels = WasteRiskClassifier.build_labels(sales_df)
     y_waste_test = waste_labels.loc[test_mask].values
 
     new_classifier = WasteRiskClassifier()
-    new_classifier.train(X_train, waste_labels.loc[train_mask].values, X_val, waste_labels.loc[val_mask].values)
+    new_classifier.train(
+        X_train, waste_labels.loc[train_mask].values, X_val, waste_labels.loc[val_mask].values
+    )
     new_waste_proba = new_classifier.predict_proba(X_test)
     new_waste_metrics = evaluate_waste_risk(y_waste_test, new_waste_proba)
 
@@ -135,16 +159,23 @@ def retrain_and_validate(engine: Engine | None = None) -> dict:
         current_demand = joblib.load(ARTIFACTS_DIR / f"{settings.demand_model_name}.joblib")
         current_pred = current_demand.predict(X_test)
         current_metrics = evaluate_forecast(
-            y_test, current_pred,
+            y_test,
+            current_pred,
             test_meta["unit_price"].values.astype(float),
             test_meta["cost_price"].values.astype(float),
         )
-        logger.info("Current model: RMSE=%.2f, MAPE=%.4f, R²=%.4f",
-                     current_metrics["rmse"], current_metrics["mape"], current_metrics["r2"])
+        logger.info(
+            "Current model: RMSE=%.2f, MAPE=%.4f, R²=%.4f",
+            current_metrics["rmse"],
+            current_metrics["mape"],
+            current_metrics["r2"],
+        )
 
         if new_metrics["mape"] < current_metrics["mape"]:
             promoted = True
-            improvement = (current_metrics["mape"] - new_metrics["mape"]) / current_metrics["mape"] * 100
+            improvement = (
+                (current_metrics["mape"] - new_metrics["mape"]) / current_metrics["mape"] * 100
+            )
             logger.info("NEW MODEL WINS — MAPE improved by %.1f%%", improvement)
         else:
             logger.info("Current model is better or equal — keeping existing")

@@ -41,9 +41,15 @@ def record_prediction(
                     waste_risk_tier  = EXCLUDED.waste_risk_tier
             """),
             {
-                "sid": store_id, "pid": product_id, "dt": pred_date,
-                "pred": predicted_demand, "cl": confidence_lower, "cu": confidence_upper,
-                "wrs": waste_risk_score, "wrt": waste_risk_tier, "mv": model_version,
+                "sid": store_id,
+                "pid": product_id,
+                "dt": pred_date,
+                "pred": predicted_demand,
+                "cl": confidence_lower,
+                "cu": confidence_upper,
+                "wrs": waste_risk_score,
+                "wrt": waste_risk_tier,
+                "mv": model_version,
             },
         )
 
@@ -57,8 +63,9 @@ def record_actual(
 ) -> dict | None:
     """Update prediction with actual demand and compute forecast error."""
     with engine.begin() as conn:
-        row = conn.execute(
-            text("""
+        row = (
+            conn.execute(
+                text("""
                 UPDATE predictions
                 SET actual_demand = :actual,
                     forecast_error = (predicted_demand - :actual)
@@ -69,11 +76,16 @@ def record_actual(
                   AND actual_demand IS NULL
                 RETURNING predicted_demand, forecast_error
             """),
-            {
-                "sid": store_id, "pid": product_id,
-                "dt": actual_date, "actual": actual_sold,
-            },
-        ).mappings().first()
+                {
+                    "sid": store_id,
+                    "pid": product_id,
+                    "dt": actual_date,
+                    "actual": actual_sold,
+                },
+            )
+            .mappings()
+            .first()
+        )
 
     if row:
         return {
@@ -95,16 +107,20 @@ def compute_rolling_mape(
     start_date = ref_date - timedelta(days=window_days)
 
     with engine.connect() as conn:
-        row = conn.execute(
-            text("""
+        row = (
+            conn.execute(
+                text("""
                 SELECT AVG(ABS(forecast_error)) as mape
                 FROM predictions
                 WHERE store_id = :sid
                   AND actual_demand IS NOT NULL
                   AND date BETWEEN :start_dt AND :end_dt
             """),
-            {"sid": store_id, "start_dt": start_date, "end_dt": ref_date},
-        ).mappings().first()
+                {"sid": store_id, "start_dt": start_date, "end_dt": ref_date},
+            )
+            .mappings()
+            .first()
+        )
 
     if row and row["mape"] is not None:
         return round(float(row["mape"]), 4)
@@ -125,6 +141,8 @@ def check_mape_threshold(
     if degraded:
         logger.warning(
             "Store %d MAPE=%.2f%% exceeds threshold %.0f%%",
-            store_id, mape * 100, threshold * 100,
+            store_id,
+            mape * 100,
+            threshold * 100,
         )
     return degraded

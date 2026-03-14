@@ -8,18 +8,37 @@ import pandas as pd
 from sqlalchemy import text
 from sqlalchemy.engine import Engine
 
-
 BOOL_COLUMNS = {"is_weekend", "is_month_start", "is_month_end", "is_holiday", "is_promotion"}
 
 
 def save_features(df: pd.DataFrame, engine: Engine, if_exists: str = "replace") -> int:
     """Write feature DataFrame to the feature_store table. Returns row count."""
     cols_to_save = [
-        "store_id", "product_id", "date",
-        *[c for c in df.columns if c not in ("store_id", "product_id", "date", "quantity_sold",
-          "revenue", "units_wasted", "units_donated", "sale_id", "created_at",
-          "quantity_on_hand", "days_until_expiry", "snapshot_id", "reorder_point",
-          "last_delivery_date", "feature_id")]
+        "store_id",
+        "product_id",
+        "date",
+        *[
+            c
+            for c in df.columns
+            if c
+            not in (
+                "store_id",
+                "product_id",
+                "date",
+                "quantity_sold",
+                "revenue",
+                "units_wasted",
+                "units_donated",
+                "sale_id",
+                "created_at",
+                "quantity_on_hand",
+                "days_until_expiry",
+                "snapshot_id",
+                "reorder_point",
+                "last_delivery_date",
+                "feature_id",
+            )
+        ],
     ]
     cols_to_save = [c for c in cols_to_save if c in df.columns]
     subset = df[cols_to_save].copy()
@@ -32,7 +51,9 @@ def save_features(df: pd.DataFrame, engine: Engine, if_exists: str = "replace") 
         with engine.begin() as conn:
             conn.execute(text("DELETE FROM feature_store"))
 
-    subset.to_sql("feature_store", engine, if_exists="append", index=False, method="multi", chunksize=2000)
+    subset.to_sql(
+        "feature_store", engine, if_exists="append", index=False, method="multi", chunksize=2000
+    )
     return len(subset)
 
 

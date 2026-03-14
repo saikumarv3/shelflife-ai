@@ -7,7 +7,7 @@ import argparse
 import logging
 
 from db.session import engine
-from mlops.retrain import should_retrain, retrain_and_validate
+from mlops.retrain import retrain_and_validate, should_retrain
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")

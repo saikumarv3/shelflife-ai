@@ -7,9 +7,8 @@ matrix suitable for XGBoost / LightGBM training and inference.
 
 from __future__ import annotations
 
-import pandas as pd
 import numpy as np
-
+import pandas as pd
 
 # Map store type strings to integers for model consumption
 STORE_TYPE_MAP = {"urban": 0, "suburban": 1, "rural": 2}
@@ -20,24 +19,45 @@ class FeatureEngineer:
 
     FEATURE_COLUMNS: list[str] = [
         # Temporal (7)
-        "day_of_week", "day_of_month", "week_of_year", "month",
-        "is_weekend", "is_month_start", "is_month_end",
+        "day_of_week",
+        "day_of_month",
+        "week_of_year",
+        "month",
+        "is_weekend",
+        "is_month_start",
+        "is_month_end",
         # Lags (7)
-        "sales_lag_1d", "sales_lag_7d", "sales_lag_14d", "sales_lag_28d",
-        "waste_lag_1d", "waste_lag_7d", "inventory_lag_1d",
+        "sales_lag_1d",
+        "sales_lag_7d",
+        "sales_lag_14d",
+        "sales_lag_28d",
+        "waste_lag_1d",
+        "waste_lag_7d",
+        "inventory_lag_1d",
         # Rolling (8)
-        "sales_rolling_7d_mean", "sales_rolling_7d_std",
-        "sales_rolling_14d_mean", "sales_rolling_28d_mean",
-        "waste_rolling_7d_sum", "waste_rolling_7d_rate",
-        "revenue_rolling_7d", "sales_rolling_7d_median",
+        "sales_rolling_7d_mean",
+        "sales_rolling_7d_std",
+        "sales_rolling_14d_mean",
+        "sales_rolling_28d_mean",
+        "waste_rolling_7d_sum",
+        "waste_rolling_7d_rate",
+        "revenue_rolling_7d",
+        "sales_rolling_7d_median",
         # Product (5)
-        "unit_price", "cost_price", "shelf_life_days", "margin_pct",
+        "unit_price",
+        "cost_price",
+        "shelf_life_days",
+        "margin_pct",
         "category_encoded",
         # Contextual (5)
-        "is_holiday", "is_promotion", "promotion_discount",
-        "temperature_avg", "store_type_encoded",
+        "is_holiday",
+        "is_promotion",
+        "promotion_discount",
+        "temperature_avg",
+        "store_type_encoded",
         # Derived (3)
-        "days_since_last_promo", "stock_to_sales_ratio",
+        "days_since_last_promo",
+        "stock_to_sales_ratio",
         "days_until_expiry_norm",
     ]
 
@@ -72,7 +92,9 @@ class FeatureEngineer:
         df["date"] = pd.to_datetime(df["date"])
         df = df.sort_values(["store_id", "product_id", "date"]).reset_index(drop=True)
 
-        inv = self.inventory[["store_id", "product_id", "date", "quantity_on_hand", "days_until_expiry"]].copy()
+        inv = self.inventory[
+            ["store_id", "product_id", "date", "quantity_on_hand", "days_until_expiry"]
+        ].copy()
         inv["date"] = pd.to_datetime(inv["date"])
 
         df = df.merge(inv, on=["store_id", "product_id", "date"], how="left")
@@ -153,10 +175,14 @@ class FeatureEngineer:
     # ── Product features ──────────────────────────────────
 
     def _add_product_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        prod = self.products[["product_id", "unit_price", "cost_price", "shelf_life_days", "category_id"]].copy()
+        prod = self.products[
+            ["product_id", "unit_price", "cost_price", "shelf_life_days", "category_id"]
+        ].copy()
         prod["unit_price"] = prod["unit_price"].astype(float)
         prod["cost_price"] = prod["cost_price"].astype(float)
-        prod["margin_pct"] = (prod["unit_price"] - prod["cost_price"]) / prod["unit_price"].replace(0, np.nan)
+        prod["margin_pct"] = (prod["unit_price"] - prod["cost_price"]) / prod["unit_price"].replace(
+            0, np.nan
+        )
         prod["margin_pct"] = prod["margin_pct"].fillna(0)
         prod["category_encoded"] = prod["category_id"] - 1
         prod = prod.drop(columns=["category_id"])
@@ -173,9 +199,7 @@ class FeatureEngineer:
         df["temperature_avg"] = df["temperature_avg"].astype(float)
 
         if self.stores is not None:
-            store_map = dict(
-                zip(self.stores["store_id"], self.stores["type"].map(STORE_TYPE_MAP))
-            )
+            store_map = dict(zip(self.stores["store_id"], self.stores["type"].map(STORE_TYPE_MAP)))
             df["store_type_encoded"] = df["store_id"].map(store_map)
         else:
             df["store_type_encoded"] = 1
@@ -189,7 +213,9 @@ class FeatureEngineer:
         df["_promo_cumcount"] = group["is_promotion"].cumsum()
         df["_last_promo_date"] = df["date"].where(df["is_promotion"] == 1)
         df["_last_promo_date"] = group["_last_promo_date"].ffill()
-        df["days_since_last_promo"] = (df["date"] - df["_last_promo_date"]).dt.days.fillna(999).astype(int)
+        df["days_since_last_promo"] = (
+            (df["date"] - df["_last_promo_date"]).dt.days.fillna(999).astype(int)
+        )
         df = df.drop(columns=["_promo_cumcount", "_last_promo_date"])
 
         avg_sales_7d = df["sales_rolling_7d_mean"].replace(0, np.nan)

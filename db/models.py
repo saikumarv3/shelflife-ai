@@ -52,8 +52,6 @@ class Category(Base):
     products = relationship("Product", back_populates="category")
 
 
-
-
 # ── 3. products ──────────────────────────────────────────────
 
 
@@ -108,9 +106,7 @@ class DailySale(Base):
 class InventorySnapshot(Base):
     __tablename__ = "inventory_snapshots"
     __table_args__ = (
-        UniqueConstraint(
-            "store_id", "product_id", "date", name="uq_inventory_store_product_date"
-        ),
+        UniqueConstraint("store_id", "product_id", "date", name="uq_inventory_store_product_date"),
     )
 
     snapshot_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -134,7 +130,10 @@ class Prediction(Base):
     __tablename__ = "predictions"
     __table_args__ = (
         UniqueConstraint(
-            "store_id", "product_id", "date", "model_version",
+            "store_id",
+            "product_id",
+            "date",
+            "model_version",
             name="uq_pred_store_product_date_version",
         ),
     )
@@ -160,9 +159,7 @@ class Prediction(Base):
 class FeatureRow(Base):
     __tablename__ = "feature_store"
     __table_args__ = (
-        UniqueConstraint(
-            "store_id", "product_id", "date", name="uq_feature_store_product_date"
-        ),
+        UniqueConstraint("store_id", "product_id", "date", name="uq_feature_store_product_date"),
     )
 
     feature_id = Column(Integer, primary_key=True, autoincrement=True)
@@ -251,9 +248,7 @@ class RecommendationLog(Base):
 
 class Alert(Base):
     __tablename__ = "alerts"
-    __table_args__ = (
-        Index("ix_alert_type_created", "alert_type", "created_at"),
-    )
+    __table_args__ = (Index("ix_alert_type_created", "alert_type", "created_at"),)
 
     alert_id = Column(Integer, primary_key=True, autoincrement=True)
     alert_type = Column(String(30), nullable=False)

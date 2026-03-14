@@ -13,7 +13,6 @@ from dataclasses import dataclass, field
 from datetime import date, timedelta
 
 import numpy as np
-import pandas as pd
 
 from config.settings import settings
 
@@ -22,13 +21,13 @@ RNG = np.random.default_rng(settings.random_seed)
 
 # ── Holiday calendar ──────────────────────────────────────────
 US_HOLIDAYS_2024 = {
-    date(2024, 1, 1),    # New Year's Day
-    date(2024, 1, 15),   # MLK Day
-    date(2024, 2, 14),   # Valentine's Day
-    date(2024, 3, 17),   # St Patrick's Day
-    date(2024, 5, 27),   # Memorial Day
-    date(2024, 7, 4),    # Independence Day
-    date(2024, 9, 2),    # Labor Day
+    date(2024, 1, 1),  # New Year's Day
+    date(2024, 1, 15),  # MLK Day
+    date(2024, 2, 14),  # Valentine's Day
+    date(2024, 3, 17),  # St Patrick's Day
+    date(2024, 5, 27),  # Memorial Day
+    date(2024, 7, 4),  # Independence Day
+    date(2024, 9, 2),  # Labor Day
     date(2024, 10, 31),  # Halloween
     date(2024, 11, 28),  # Thanksgiving
     date(2024, 12, 24),  # Christmas Eve
@@ -38,6 +37,7 @@ US_HOLIDAYS_2024 = {
 
 
 # ── Output containers ────────────────────────────────────────
+
 
 @dataclass
 class SyntheticData:
@@ -52,21 +52,31 @@ class SyntheticData:
 
 STORE_DEFS = [
     {"name": "Metro Downtown #12", "location": "Chicago, IL", "size_sqft": 42000, "type": "urban"},
-    {"name": "FreshMart Plano #7", "location": "Dallas, TX", "size_sqft": 55000, "type": "suburban"},
-    {"name": "Green Valley Market", "location": "Burlington, VT", "size_sqft": 18000, "type": "rural"},
+    {
+        "name": "FreshMart Plano #7",
+        "location": "Dallas, TX",
+        "size_sqft": 55000,
+        "type": "suburban",
+    },
+    {
+        "name": "Green Valley Market",
+        "location": "Burlington, VT",
+        "size_sqft": 18000,
+        "type": "rural",
+    },
 ]
 
 # ── Category definitions ─────────────────────────────────────
 
 CATEGORY_DEFS = [
-    {"name": "Dairy",          "perishability": "high",   "avg_shelf_days": 14},
-    {"name": "Bakery",         "perishability": "high",   "avg_shelf_days": 5},
-    {"name": "Produce",        "perishability": "high",   "avg_shelf_days": 7},
-    {"name": "Deli/Prepared",  "perishability": "high",   "avg_shelf_days": 3},
-    {"name": "Meat & Seafood", "perishability": "high",   "avg_shelf_days": 5},
-    {"name": "Frozen",         "perishability": "low",    "avg_shelf_days": 180},
-    {"name": "Beverages",      "perishability": "low",    "avg_shelf_days": 90},
-    {"name": "Snacks & Dry",   "perishability": "low",    "avg_shelf_days": 365},
+    {"name": "Dairy", "perishability": "high", "avg_shelf_days": 14},
+    {"name": "Bakery", "perishability": "high", "avg_shelf_days": 5},
+    {"name": "Produce", "perishability": "high", "avg_shelf_days": 7},
+    {"name": "Deli/Prepared", "perishability": "high", "avg_shelf_days": 3},
+    {"name": "Meat & Seafood", "perishability": "high", "avg_shelf_days": 5},
+    {"name": "Frozen", "perishability": "low", "avg_shelf_days": 180},
+    {"name": "Beverages", "perishability": "low", "avg_shelf_days": 90},
+    {"name": "Snacks & Dry", "perishability": "low", "avg_shelf_days": 365},
 ]
 
 # ── Product catalog ──────────────────────────────────────────
@@ -142,63 +152,119 @@ STORE_DEMAND_MULT = {"urban": 1.3, "suburban": 1.0, "rural": 0.6}
 # index 0=Mon … 6=Sun
 
 WEEKDAY_MULTS: dict[int, list[float]] = {
-    0: [0.9, 0.9, 1.0, 1.0, 1.1, 1.2, 1.1],   # Dairy
-    1: [0.8, 0.8, 0.9, 0.9, 1.1, 1.3, 1.3],   # Bakery (weekend peak)
-    2: [0.9, 0.9, 1.0, 1.0, 1.1, 1.2, 1.1],   # Produce
-    3: [1.0, 1.0, 1.0, 1.1, 1.2, 1.1, 0.8],   # Deli (weekday lunch)
-    4: [0.8, 0.9, 0.9, 1.0, 1.2, 1.3, 1.0],   # Meat (Fri-Sat grill)
-    5: [0.9, 0.9, 1.0, 1.0, 1.0, 1.1, 1.1],   # Frozen
-    6: [1.0, 1.0, 1.0, 1.0, 1.0, 1.1, 1.0],   # Beverages
-    7: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],   # Snacks (flat)
+    0: [0.9, 0.9, 1.0, 1.0, 1.1, 1.2, 1.1],  # Dairy
+    1: [0.8, 0.8, 0.9, 0.9, 1.1, 1.3, 1.3],  # Bakery (weekend peak)
+    2: [0.9, 0.9, 1.0, 1.0, 1.1, 1.2, 1.1],  # Produce
+    3: [1.0, 1.0, 1.0, 1.1, 1.2, 1.1, 0.8],  # Deli (weekday lunch)
+    4: [0.8, 0.9, 0.9, 1.0, 1.2, 1.3, 1.0],  # Meat (Fri-Sat grill)
+    5: [0.9, 0.9, 1.0, 1.0, 1.0, 1.1, 1.1],  # Frozen
+    6: [1.0, 1.0, 1.0, 1.0, 1.0, 1.1, 1.0],  # Beverages
+    7: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],  # Snacks (flat)
 }
 
 # Seasonal phase shifts: 0=peak in summer, π=peak in winter
 SEASONAL_PHASE: dict[int, float] = {
-    0: 0.0,           # Dairy: flat
-    1: 0.0,           # Bakery: flat
-    2: 0.0,           # Produce: summer peak
-    3: 0.0,           # Deli: summer peak
-    4: 0.0,           # Meat: summer peak (grilling)
-    5: math.pi,       # Frozen: winter peak (comfort food)
-    6: 0.0,           # Beverages: summer peak
-    7: math.pi,       # Snacks: winter peak (indoor snacking)
+    0: 0.0,  # Dairy: flat
+    1: 0.0,  # Bakery: flat
+    2: 0.0,  # Produce: summer peak
+    3: 0.0,  # Deli: summer peak
+    4: 0.0,  # Meat: summer peak (grilling)
+    5: math.pi,  # Frozen: winter peak (comfort food)
+    6: 0.0,  # Beverages: summer peak
+    7: math.pi,  # Snacks: winter peak (indoor snacking)
 }
 
 SEASONAL_AMPLITUDE: dict[int, float] = {
-    0: 0.05, 1: 0.05, 2: 0.15, 3: 0.10, 4: 0.15, 5: 0.10, 6: 0.20, 7: 0.08,
+    0: 0.05,
+    1: 0.05,
+    2: 0.15,
+    3: 0.10,
+    4: 0.15,
+    5: 0.10,
+    6: 0.20,
+    7: 0.08,
 }
 
 # Category-level waste rate (fraction of overstock that becomes waste)
 CATEGORY_WASTE_RATE: dict[int, float] = {
-    0: 0.08, 1: 0.12, 2: 0.10, 3: 0.15, 4: 0.10, 5: 0.02, 6: 0.03, 7: 0.01,
+    0: 0.08,
+    1: 0.12,
+    2: 0.10,
+    3: 0.15,
+    4: 0.10,
+    5: 0.02,
+    6: 0.03,
+    7: 0.01,
 }
 
 # Base daily demand per product (units/day at a suburban store)
 BASE_DEMAND = [
     # Dairy
-    80, 60, 45, 30, 25, 20, 18,
+    80,
+    60,
+    45,
+    30,
+    25,
+    20,
+    18,
     # Bakery
-    50, 40, 25, 35, 30, 20, 22,
+    50,
+    40,
+    25,
+    35,
+    30,
+    20,
+    22,
     # Produce
-    120, 35, 40, 30, 50, 25, 35,
+    120,
+    35,
+    40,
+    30,
+    50,
+    25,
+    35,
     # Deli
-    30, 20, 25, 18, 12, 15,
+    30,
+    20,
+    25,
+    18,
+    12,
+    15,
     # Meat
-    20, 35, 40, 18, 15, 22,
+    20,
+    35,
+    40,
+    18,
+    15,
+    22,
     # Frozen
-    18, 25, 22, 20, 15, 12,
+    18,
+    25,
+    22,
+    20,
+    15,
+    12,
     # Beverages
-    30, 45, 35, 20, 12, 15,
+    30,
+    45,
+    35,
+    20,
+    12,
+    15,
     # Snacks
-    20, 25, 15, 22, 30,
+    20,
+    25,
+    15,
+    22,
+    30,
 ]
 assert len(BASE_DEMAND) == 50
 
 # City temperature profiles (base °F, amplitude °F)
 CITY_TEMPS = {
-    "Chicago, IL":     (50.0, 25.0),
-    "Dallas, TX":      (65.0, 20.0),
-    "Burlington, VT":  (45.0, 28.0),
+    "Chicago, IL": (50.0, 25.0),
+    "Dallas, TX": (65.0, 20.0),
+    "Burlington, VT": (45.0, 28.0),
 }
 
 
@@ -231,15 +297,17 @@ def generate_all() -> SyntheticData:
 
     # ── Products ──────────────────────────────────────────
     for i, (name, cat_idx, price, cost, shelf, temp) in enumerate(PRODUCT_DEFS, start=1):
-        data.products.append({
-            "product_id": i,
-            "category_id": cat_idx + 1,
-            "name": name,
-            "unit_price": price,
-            "cost_price": cost,
-            "shelf_life_days": shelf,
-            "storage_temp": temp,
-        })
+        data.products.append(
+            {
+                "product_id": i,
+                "category_id": cat_idx + 1,
+                "name": name,
+                "unit_price": price,
+                "cost_price": cost,
+                "shelf_life_days": shelf,
+                "storage_temp": temp,
+            }
+        )
 
     # ── Sales + Inventory per store × product × date ─────
     for store in data.stores:
@@ -323,42 +391,44 @@ def generate_all() -> SyntheticData:
                 effective_price = price * (1 - promo_discount) if is_promo else price
                 revenue = round(sold * effective_price, 2)
 
-                data.sales.append({
-                    "store_id": store_id,
-                    "product_id": pid,
-                    "date": d,
-                    "quantity_sold": sold,
-                    "revenue": revenue,
-                    "units_wasted": wasted,
-                    "units_donated": donated,
-                    "temperature_avg": temp,
-                    "is_holiday": is_holiday,
-                    "is_promotion": is_promo,
-                    "promotion_discount": promo_discount,
-                    "day_of_week": day_of_week,
-                })
+                data.sales.append(
+                    {
+                        "store_id": store_id,
+                        "product_id": pid,
+                        "date": d,
+                        "quantity_sold": sold,
+                        "revenue": revenue,
+                        "units_wasted": wasted,
+                        "units_donated": donated,
+                        "temperature_avg": temp,
+                        "is_holiday": is_holiday,
+                        "is_promotion": is_promo,
+                        "promotion_discount": promo_discount,
+                        "day_of_week": day_of_week,
+                    }
+                )
 
                 stock = stock - sold - wasted - donated
 
-                delivered = 0
                 if day_idx % reorder_freq == 0 and day_idx > 0:
                     order_qty = max(0, reorder_point - stock + safety_stock)
                     order_qty = int(order_qty * RNG.uniform(0.9, 1.1))
                     stock += order_qty
-                    delivered = order_qty
                     last_delivery = d
 
                 days_until_expiry = max(1, shelf_days - (day_idx % max(shelf_days, 1)))
 
-                data.inventory.append({
-                    "store_id": store_id,
-                    "product_id": pid,
-                    "date": d,
-                    "quantity_on_hand": max(0, stock),
-                    "days_until_expiry": days_until_expiry,
-                    "reorder_point": reorder_point,
-                    "last_delivery_date": last_delivery,
-                })
+                data.inventory.append(
+                    {
+                        "store_id": store_id,
+                        "product_id": pid,
+                        "date": d,
+                        "quantity_on_hand": max(0, stock),
+                        "days_until_expiry": days_until_expiry,
+                        "reorder_point": reorder_point,
+                        "last_delivery_date": last_delivery,
+                    }
+                )
 
     return data
 

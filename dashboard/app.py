@@ -1,12 +1,11 @@
 """ShelfLife AI — Streamlit Dashboard (4 pages)."""
 
-import streamlit as st
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
+import streamlit as st
 from sqlalchemy import text
 
-from config.settings import settings
 from db.session import engine
 
 st.set_page_config(page_title="ShelfLife AI", page_icon="🥬", layout="wide")
@@ -26,13 +25,15 @@ def sidebar():
 
     stores = query("SELECT store_id, name FROM stores ORDER BY store_id")
     store_id = st.sidebar.selectbox(
-        "Store", stores["store_id"].tolist(),
+        "Store",
+        stores["store_id"].tolist(),
         format_func=lambda x: stores.loc[stores["store_id"] == x, "name"].values[0],
     )
     return page, store_id
 
 
 # ── Page 1: Demand Forecast ──────────────────────────────────
+
 
 def page_demand_forecast(store_id: int):
     st.header("Demand Forecast")
@@ -61,7 +62,9 @@ def page_demand_forecast(store_id: int):
     df = query(sql, {"sid": store_id, "d1": str(date_from), "d2": str(date_to)})
 
     if df.empty:
-        st.info("No data for selected filters. Run `uv run python -m scripts.run_daily_forecast` to generate predictions.")
+        st.info(
+            "No data for selected filters. Run `uv run python -m scripts.run_daily_forecast` to generate predictions."
+        )
         return
 
     if cat_filter != "All":
@@ -71,35 +74,62 @@ def page_demand_forecast(store_id: int):
     if "predicted" in df.columns and df["predicted"].notna().any():
         matched = df.dropna(subset=["predicted", "actual"])
         if not matched.empty:
-            mape_val = (abs(matched["predicted"] - matched["actual"]) / matched["actual"].clip(lower=1)).mean()
+            mape_val = (
+                abs(matched["predicted"] - matched["actual"]) / matched["actual"].clip(lower=1)
+            ).mean()
             c1, c2, c3 = st.columns(3)
             c1.metric("MAPE", f"{mape_val:.1%}")
             c2.metric("Predictions", f"{len(matched):,}")
             c3.metric("Products", f"{df['product_id'].nunique()}")
 
     # Aggregate by date
-    daily = df.groupby("date").agg(
-        actual=("actual", "sum"),
-        predicted=("predicted", "sum"),
-    ).reset_index()
+    daily = (
+        df.groupby("date")
+        .agg(
+            actual=("actual", "sum"),
+            predicted=("predicted", "sum"),
+        )
+        .reset_index()
+    )
 
     fig = go.Figure()
-    fig.add_trace(go.Scatter(x=daily["date"], y=daily["actual"], name="Actual", line=dict(color="#2563eb")))
+    fig.add_trace(
+        go.Scatter(x=daily["date"], y=daily["actual"], name="Actual", line=dict(color="#2563eb"))
+    )
     if daily["predicted"].notna().any():
-        fig.add_trace(go.Scatter(x=daily["date"], y=daily["predicted"], name="Predicted", line=dict(color="#f97316", dash="dash")))
-    fig.update_layout(title="Daily Demand: Actual vs Predicted", xaxis_title="Date", yaxis_title="Units Sold", height=400)
+        fig.add_trace(
+            go.Scatter(
+                x=daily["date"],
+                y=daily["predicted"],
+                name="Predicted",
+                line=dict(color="#f97316", dash="dash"),
+            )
+        )
+    fig.update_layout(
+        title="Daily Demand: Actual vs Predicted",
+        xaxis_title="Date",
+        yaxis_title="Units Sold",
+        height=400,
+    )
     st.plotly_chart(fig, use_container_width=True)
 
     # Top products table
-    top = df.groupby(["product_id", "product_name"]).agg(
-        total_sold=("actual", "sum"),
-        avg_daily=("actual", "mean"),
-    ).sort_values("total_sold", ascending=False).head(10).reset_index()
+    top = (
+        df.groupby(["product_id", "product_name"])
+        .agg(
+            total_sold=("actual", "sum"),
+            avg_daily=("actual", "mean"),
+        )
+        .sort_values("total_sold", ascending=False)
+        .head(10)
+        .reset_index()
+    )
     st.subheader("Top 10 Products by Sales")
     st.dataframe(top, use_container_width=True, hide_index=True)
 
 
 # ── Page 2: Waste Risk ───────────────────────────────────────
+
 
 def page_waste_risk(store_id: int):
     st.header("Waste Risk Monitor")
@@ -135,13 +165,31 @@ def page_waste_risk(store_id: int):
     c4.metric("~Meals Lost", f"{int(kg_wasted * 2.5):,}")
 
     # Waste by category
-    by_cat = df.groupby("category").agg(wasted=("units_wasted", "sum")).sort_values("wasted", ascending=False).reset_index()
-    fig = px.bar(by_cat, x="category", y="wasted", title="Waste by Category", color="wasted", color_continuous_scale="Reds")
+    by_cat = (
+        df.groupby("category")
+        .agg(wasted=("units_wasted", "sum"))
+        .sort_values("wasted", ascending=False)
+        .reset_index()
+    )
+    fig = px.bar(
+        by_cat,
+        x="category",
+        y="wasted",
+        title="Waste by Category",
+        color="wasted",
+        color_continuous_scale="Reds",
+    )
     st.plotly_chart(fig, use_container_width=True)
 
     # Waste trend
     daily_waste = df.groupby("date").agg(wasted=("units_wasted", "sum")).reset_index()
-    fig2 = px.area(daily_waste, x="date", y="wasted", title="Daily Waste Trend", color_discrete_sequence=["#ef4444"])
+    fig2 = px.area(
+        daily_waste,
+        x="date",
+        y="wasted",
+        title="Daily Waste Trend",
+        color_discrete_sequence=["#ef4444"],
+    )
     st.plotly_chart(fig2, use_container_width=True)
 
     # At-risk items (low days to expiry, high stock)
@@ -151,12 +199,16 @@ def page_waste_risk(store_id: int):
         if not at_risk.empty:
             st.subheader("At-Risk Items (3 days to expiry)")
             st.dataframe(
-                at_risk[["product_name", "category", "quantity_on_hand", "days_until_expiry"]].sort_values("days_until_expiry"),
-                use_container_width=True, hide_index=True,
+                at_risk[
+                    ["product_name", "category", "quantity_on_hand", "days_until_expiry"]
+                ].sort_values("days_until_expiry"),
+                use_container_width=True,
+                hide_index=True,
             )
 
 
 # ── Page 3: Recommendations ──────────────────────────────────
+
 
 def page_recommendations(store_id: int):
     st.header("Recommendations")
@@ -176,24 +228,30 @@ def page_recommendations(store_id: int):
     df = query(sql, {"sid": store_id})
 
     if df.empty:
-        st.info("No recommendations generated yet. Use the `/recommend` API endpoint to generate some.")
+        st.info(
+            "No recommendations generated yet. Use the `/recommend` API endpoint to generate some."
+        )
         return
 
     # KPIs
     total = len(df)
     accepted = len(df[df["status"] == "accepted"])
     expected_savings = df["expected_cost_saved_usd"].sum()
-    actual_savings = df["actual_cost_saved_usd"].sum() if "actual_cost_saved_usd" in df.columns else 0
+    actual_savings = (
+        df["actual_cost_saved_usd"].sum() if "actual_cost_saved_usd" in df.columns else 0
+    )
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total Recs", total)
-    c2.metric("Accepted", f"{accepted} ({accepted/max(total,1):.0%})")
+    c2.metric("Accepted", f"{accepted} ({accepted / max(total, 1):.0%})")
     c3.metric("Expected Savings", f"${expected_savings:,.2f}")
     c4.metric("Actual Savings", f"${actual_savings:,.2f}")
 
     # By action type
     by_action = df.groupby("action_type").size().reset_index(name="count")
-    fig = px.pie(by_action, names="action_type", values="count", title="Recommendations by Action Type")
+    fig = px.pie(
+        by_action, names="action_type", values="count", title="Recommendations by Action Type"
+    )
     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Recent Recommendations")
@@ -201,6 +259,7 @@ def page_recommendations(store_id: int):
 
 
 # ── Page 4: Model Performance ────────────────────────────────
+
 
 def page_model_performance(store_id: int):
     st.header("Model Performance & MLOps")
@@ -260,6 +319,7 @@ def page_model_performance(store_id: int):
 
 
 # ── Main ─────────────────────────────────────────────────────
+
 
 def main():
     page, store_id = sidebar()

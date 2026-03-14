@@ -44,14 +44,18 @@ def run(target_date: date | None = None):
 
     for store_id, product_id in pairs:
         with engine.connect() as conn:
-            row = conn.execute(
-                text("""
+            row = (
+                conn.execute(
+                    text("""
                     SELECT * FROM feature_store
                     WHERE store_id = :sid AND product_id = :pid
                     ORDER BY date DESC LIMIT 1
                 """),
-                {"sid": store_id, "pid": product_id},
-            ).mappings().first()
+                    {"sid": store_id, "pid": product_id},
+                )
+                .mappings()
+                .first()
+            )
 
         if row is None:
             continue

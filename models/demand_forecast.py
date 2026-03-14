@@ -8,8 +8,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 import numpy as np
-from xgboost import XGBRegressor
 from lightgbm import LGBMRegressor
+from xgboost import XGBRegressor
 
 from config.settings import settings
 
@@ -18,32 +18,36 @@ from config.settings import settings
 class DemandForecaster:
     """Trains and predicts with an XGBoost + LightGBM ensemble."""
 
-    xgb_params: dict = field(default_factory=lambda: {
-        "n_estimators": 300,
-        "max_depth": 6,
-        "learning_rate": 0.05,
-        "subsample": 0.8,
-        "colsample_bytree": 0.8,
-        "min_child_weight": 3,
-        "reg_alpha": 0.01,
-        "reg_lambda": 1.5,
-        "random_state": settings.random_seed,
-        "n_jobs": -1,
-    })
-    lgbm_params: dict = field(default_factory=lambda: {
-        "n_estimators": 300,
-        "max_depth": -1,
-        "learning_rate": 0.05,
-        "num_leaves": 63,
-        "subsample": 0.8,
-        "colsample_bytree": 0.8,
-        "min_child_samples": 10,
-        "reg_alpha": 0.01,
-        "reg_lambda": 1.5,
-        "random_state": settings.random_seed,
-        "n_jobs": -1,
-        "verbose": -1,
-    })
+    xgb_params: dict = field(
+        default_factory=lambda: {
+            "n_estimators": 300,
+            "max_depth": 6,
+            "learning_rate": 0.05,
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "min_child_weight": 3,
+            "reg_alpha": 0.01,
+            "reg_lambda": 1.5,
+            "random_state": settings.random_seed,
+            "n_jobs": -1,
+        }
+    )
+    lgbm_params: dict = field(
+        default_factory=lambda: {
+            "n_estimators": 300,
+            "max_depth": -1,
+            "learning_rate": 0.05,
+            "num_leaves": 63,
+            "subsample": 0.8,
+            "colsample_bytree": 0.8,
+            "min_child_samples": 10,
+            "reg_alpha": 0.01,
+            "reg_lambda": 1.5,
+            "random_state": settings.random_seed,
+            "n_jobs": -1,
+            "verbose": -1,
+        }
+    )
     ensemble_weight_xgb: float = 0.6
 
     xgb_model: XGBRegressor | None = field(default=None, repr=False)
@@ -63,7 +67,8 @@ class DemandForecaster:
 
         self.xgb_model = XGBRegressor(**self.xgb_params)
         self.xgb_model.fit(
-            X_train, y_train,
+            X_train,
+            y_train,
             eval_set=eval_set,
             verbose=False,
         )
@@ -71,7 +76,8 @@ class DemandForecaster:
         self.lgbm_model = LGBMRegressor(**self.lgbm_params)
         lgbm_callbacks = []
         self.lgbm_model.fit(
-            X_train, y_train,
+            X_train,
+            y_train,
             eval_set=eval_set,
             callbacks=lgbm_callbacks,
         )

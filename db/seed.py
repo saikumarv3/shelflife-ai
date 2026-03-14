@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import time
 
+from data_generator.synthetic import generate_all
 from db.models import (
     Base,
     Category,
@@ -18,7 +19,6 @@ from db.models import (
     Store,
 )
 from db.session import SessionLocal, engine
-from data_generator.synthetic import generate_all
 
 
 def seed() -> None:
@@ -55,7 +55,9 @@ def seed() -> None:
         for p in data.products:
             db.add(Product(**p))
         db.commit()
-        print(f"       {len(data.stores)} stores, {len(data.categories)} categories, {len(data.products)} products inserted.")
+        print(
+            f"       {len(data.stores)} stores, {len(data.categories)} categories, {len(data.products)} products inserted."
+        )
 
         # ── Bulk insert sales ─────────────────────────────
         print(f"\n[4/5] Inserting {len(data.sales):,} daily_sales rows (bulk)...")
@@ -101,11 +103,7 @@ def seed() -> None:
             status = "OK" if count > 0 else "EMPTY"
             print(f"  {table:25s} {count:>8,}  [{status}]")
 
-        total_revenue = db.query(
-            DailySale.revenue
-        ).with_entities(
-            DailySale.revenue
-        ).all()
+        total_revenue = db.query(DailySale.revenue).with_entities(DailySale.revenue).all()
         revenue_sum = sum(float(r[0]) for r in total_revenue)
 
         total_waste = db.query(DailySale.units_wasted).all()

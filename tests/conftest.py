@@ -1,8 +1,8 @@
 """Shared test fixtures — DB engine, API TestClient, sample data."""
 
-import pytest
 import numpy as np
 import pandas as pd
+import pytest
 from fastapi.testclient import TestClient
 
 from api.main import app
@@ -33,25 +33,45 @@ def sample_sales_df():
     rows = []
     for d in dates:
         for pid in [1, 2]:
-            rows.append({
-                "store_id": 1, "product_id": pid, "date": d,
-                "quantity_sold": int(rng.integers(5, 30)),
-                "revenue": round(float(rng.uniform(20, 100)), 2),
-                "units_wasted": int(rng.integers(0, 4)),
-                "units_donated": 0,
-                "temperature_avg": round(float(rng.uniform(30, 80)), 1),
-                "is_holiday": False, "is_promotion": False,
-                "promotion_discount": 0.0, "day_of_week": d.dayofweek,
-            })
+            rows.append(
+                {
+                    "store_id": 1,
+                    "product_id": pid,
+                    "date": d,
+                    "quantity_sold": int(rng.integers(5, 30)),
+                    "revenue": round(float(rng.uniform(20, 100)), 2),
+                    "units_wasted": int(rng.integers(0, 4)),
+                    "units_donated": 0,
+                    "temperature_avg": round(float(rng.uniform(30, 80)), 1),
+                    "is_holiday": False,
+                    "is_promotion": False,
+                    "promotion_discount": 0.0,
+                    "day_of_week": d.dayofweek,
+                }
+            )
     return pd.DataFrame(rows)
 
 
 @pytest.fixture(scope="session")
 def sample_products_df():
-    return pd.DataFrame([
-        {"product_id": 1, "category_id": 1, "unit_price": 3.99, "cost_price": 2.10, "shelf_life_days": 14},
-        {"product_id": 2, "category_id": 2, "unit_price": 5.49, "cost_price": 3.20, "shelf_life_days": 7},
-    ])
+    return pd.DataFrame(
+        [
+            {
+                "product_id": 1,
+                "category_id": 1,
+                "unit_price": 3.99,
+                "cost_price": 2.10,
+                "shelf_life_days": 14,
+            },
+            {
+                "product_id": 2,
+                "category_id": 2,
+                "unit_price": 5.49,
+                "cost_price": 3.20,
+                "shelf_life_days": 7,
+            },
+        ]
+    )
 
 
 @pytest.fixture(scope="session")
@@ -61,9 +81,13 @@ def sample_inventory_df():
     rows = []
     for d in dates:
         for pid in [1, 2]:
-            rows.append({
-                "store_id": 1, "product_id": pid, "date": d,
-                "quantity_on_hand": int(rng.integers(10, 60)),
-                "days_until_expiry": int(rng.integers(1, 14)),
-            })
+            rows.append(
+                {
+                    "store_id": 1,
+                    "product_id": pid,
+                    "date": d,
+                    "quantity_on_hand": int(rng.integers(10, 60)),
+                    "days_until_expiry": int(rng.integers(1, 14)),
+                }
+            )
     return pd.DataFrame(rows)

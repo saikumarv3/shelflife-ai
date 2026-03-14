@@ -26,23 +26,27 @@ scheduler = BackgroundScheduler()
 
 def _job_daily_forecast():
     from scripts.run_daily_forecast import run
+
     run()
 
 
 def _job_drift_check():
-    from mlops.drift_detection import run_drift_check
     from db.session import engine
+    from mlops.drift_detection import run_drift_check
+
     run_drift_check(engine)
 
 
 def _job_feedback():
     from scripts.run_feedback import run
+
     run()
 
 
 def _job_retrain():
-    from mlops.retrain import should_retrain, retrain_and_validate
     from db.session import engine
+    from mlops.retrain import retrain_and_validate, should_retrain
+
     triggers = should_retrain(engine)
     if triggers["should_retrain"]:
         retrain_and_validate(engine)
@@ -54,9 +58,7 @@ async def lifespan(app: FastAPI):
     mm = get_model_manager()
     mm.load()
     if mm.is_loaded:
-        MODEL_VERSION.labels(
-            model_name=settings.demand_model_name, version=mm.model_version
-        ).set(1)
+        MODEL_VERSION.labels(model_name=settings.demand_model_name, version=mm.model_version).set(1)
     logger.info("Models loaded: %s", mm.is_loaded)
 
     scheduler.add_job(_job_daily_forecast, "cron", hour=6, minute=0, id="daily_forecast")

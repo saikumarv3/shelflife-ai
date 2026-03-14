@@ -83,7 +83,7 @@ PREDICTION_PATHS = {"/predict/demand", "/predict/batch", "/predict/waste-risk", 
 
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
-        from monitoring.metrics import PREDICTION_REQUESTS, PREDICTION_LATENCY
+        from monitoring.metrics import PREDICTION_LATENCY, PREDICTION_REQUESTS
 
         request_id = str(uuid.uuid4())[:8]
         start = time.perf_counter()

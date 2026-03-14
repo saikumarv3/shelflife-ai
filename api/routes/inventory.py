@@ -8,11 +8,11 @@ from sqlalchemy.orm import Session
 
 from api.dependencies import get_db
 from api.schemas import (
+    ForecastAccuracyItem,
     InventoryItem,
     InventoryResponse,
     InventoryUpdateRequest,
     InventoryUpdateResponse,
-    ForecastAccuracyItem,
 )
 
 router = APIRouter(prefix="/inventory", tags=["Inventory"])
@@ -99,14 +99,18 @@ async def update_inventory(
     forecast_accuracy: dict[str, ForecastAccuracyItem] = {}
 
     for item in req.items:
-        pred_row = db.execute(
-            text("""
+        pred_row = (
+            db.execute(
+                text("""
                 SELECT predicted_demand, model_version FROM predictions
                 WHERE store_id = :sid AND product_id = :pid AND date = :dt
                 ORDER BY created_at DESC LIMIT 1
             """),
-            {"sid": req.store_id, "pid": item.product_id, "dt": str(req.date)},
-        ).mappings().first()
+                {"sid": req.store_id, "pid": item.product_id, "dt": str(req.date)},
+            )
+            .mappings()
+            .first()
+        )
 
         if pred_row:
             predicted = float(pred_row["predicted_demand"])
@@ -136,18 +140,24 @@ async def update_inventory(
 
     db.commit()
 
-    mape_row = db.execute(
-        text("""
+    mape_row = (
+        db.execute(
+            text("""
             SELECT AVG(ABS(forecast_error)) as avg_mape
             FROM predictions
             WHERE store_id = :sid
               AND actual_demand IS NOT NULL
               AND date >= CAST(:dt AS date) - INTERVAL '7 days'
         """),
-        {"sid": req.store_id, "dt": str(req.date)},
-    ).mappings().first()
+            {"sid": req.store_id, "dt": str(req.date)},
+        )
+        .mappings()
+        .first()
+    )
 
-    rolling_mape = round(float(mape_row["avg_mape"]) * 100, 1) if mape_row and mape_row["avg_mape"] else None
+    rolling_mape = (
+        round(float(mape_row["avg_mape"]) * 100, 1) if mape_row and mape_row["avg_mape"] else None
+    )
 
     return InventoryUpdateResponse(
         store_id=req.store_id,

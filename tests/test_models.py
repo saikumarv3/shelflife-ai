@@ -3,8 +3,8 @@
 import numpy as np
 
 from models.demand_forecast import DemandForecaster
+from models.evaluation import compute_baselines, mape
 from models.waste_risk import WasteRiskClassifier
-from models.evaluation import mape, evaluate_forecast, compute_baselines
 
 
 def test_demand_forecaster_trains_and_predicts():

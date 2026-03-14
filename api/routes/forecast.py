@@ -11,7 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from api.dependencies import get_db, get_model_manager, get_redis, ModelManager
+from api.dependencies import ModelManager, get_db, get_model_manager, get_redis
 from api.schemas import (
     BatchDemandRequest,
     BatchDemandResponse,
@@ -19,7 +19,6 @@ from api.schemas import (
     DemandResponse,
 )
 from config.settings import settings
-from features.engineering import FeatureEngineer
 from monitoring.metrics import CACHE_HITS, CACHE_MISSES
 
 router = APIRouter(prefix="/predict", tags=["Forecast"])
@@ -38,26 +37,37 @@ def _cache_ttl(prediction_date: _date) -> int:
 
 def _build_feature_vector(db: Session, req: DemandRequest, mm: ModelManager) -> np.ndarray:
     """Look up pre-computed features from feature_store, or return zeros as fallback."""
-    row = db.execute(
-        text("""
+    row = (
+        db.execute(
+            text("""
             SELECT * FROM feature_store
             WHERE store_id = :sid AND product_id = :pid AND date = :dt
             LIMIT 1
         """),
-        {"sid": req.store_id, "pid": req.product_id, "dt": str(req.date)},
-    ).mappings().first()
+            {"sid": req.store_id, "pid": req.product_id, "dt": str(req.date)},
+        )
+        .mappings()
+        .first()
+    )
 
     if row is None:
-        last_row = db.execute(
-            text("""
+        last_row = (
+            db.execute(
+                text("""
                 SELECT * FROM feature_store
                 WHERE store_id = :sid AND product_id = :pid
                 ORDER BY date DESC LIMIT 1
             """),
-            {"sid": req.store_id, "pid": req.product_id},
-        ).mappings().first()
+                {"sid": req.store_id, "pid": req.product_id},
+            )
+            .mappings()
+            .first()
+        )
         if last_row is None:
-            raise HTTPException(status_code=404, detail=f"No features for store {req.store_id}, product {req.product_id}")
+            raise HTTPException(
+                status_code=404,
+                detail=f"No features for store {req.store_id}, product {req.product_id}",
+            )
         row = last_row
 
     cols = mm.feature_columns

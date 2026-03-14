@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from api.dependencies import get_db, get_model_manager, ModelManager
-from api.schemas import RecommendRequest, RecommendResponse, Recommendation, ActionImpact
+from api.dependencies import ModelManager, get_db, get_model_manager
+from api.schemas import ActionImpact, Recommendation, RecommendRequest, RecommendResponse
 from monitoring.metrics import RECOMMENDATIONS_GENERATED
 from recommendation.engine import RecommendationEngine
 
@@ -25,33 +25,45 @@ async def recommend(
     if not mm.is_loaded:
         raise HTTPException(status_code=503, detail="Model not available, try again later")
 
-    product = db.execute(
-        text("SELECT name, unit_price, cost_price FROM products WHERE product_id = :pid"),
-        {"pid": req.product_id},
-    ).mappings().first()
+    product = (
+        db.execute(
+            text("SELECT name, unit_price, cost_price FROM products WHERE product_id = :pid"),
+            {"pid": req.product_id},
+        )
+        .mappings()
+        .first()
+    )
     if not product:
         raise HTTPException(status_code=404, detail=f"Product {req.product_id} not found")
 
-    inv = db.execute(
-        text("""
+    inv = (
+        db.execute(
+            text("""
             SELECT quantity_on_hand, days_until_expiry FROM inventory_snapshots
             WHERE store_id = :sid AND product_id = :pid
             ORDER BY date DESC LIMIT 1
         """),
-        {"sid": req.store_id, "pid": req.product_id},
-    ).mappings().first()
+            {"sid": req.store_id, "pid": req.product_id},
+        )
+        .mappings()
+        .first()
+    )
 
     current_stock = int(inv["quantity_on_hand"]) if inv else 0
     days_exp = int(inv["days_until_expiry"] or 7) if inv else 7
 
-    feature_row = db.execute(
-        text("""
+    feature_row = (
+        db.execute(
+            text("""
             SELECT * FROM feature_store
             WHERE store_id = :sid AND product_id = :pid
             ORDER BY date DESC LIMIT 1
         """),
-        {"sid": req.store_id, "pid": req.product_id},
-    ).mappings().first()
+            {"sid": req.store_id, "pid": req.product_id},
+        )
+        .mappings()
+        .first()
+    )
 
     if feature_row is None:
         raise HTTPException(status_code=404, detail="No features available")

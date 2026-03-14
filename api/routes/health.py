@@ -7,12 +7,12 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Response
 from sqlalchemy import text
 
-from api.dependencies import get_model_manager, get_redis, ModelManager
+from api.dependencies import ModelManager, get_model_manager, get_redis
 from api.schemas import HealthResponse, ReadyResponse
 from db.session import engine
 
 try:
-    from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
+    from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 except ImportError:
     generate_latest = None
     CONTENT_TYPE_LATEST = "text/plain"

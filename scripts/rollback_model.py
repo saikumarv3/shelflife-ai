@@ -61,7 +61,8 @@ def rollback_model(model_name: str, to_version: str) -> bool:
     # Find current Production version
     try:
         prod_versions = [
-            v for v in client.search_model_versions(f"name='{model_name}'")
+            v
+            for v in client.search_model_versions(f"name='{model_name}'")
             if v.current_stage == "Production"
         ]
     except Exception as exc:
@@ -96,6 +97,7 @@ def rollback_model(model_name: str, to_version: str) -> bool:
     # Flush Redis cache
     try:
         import redis
+
         r = redis.Redis.from_url(settings.redis_url)
         keys = r.keys("shelflife:predict:*")
         if keys:
@@ -114,12 +116,14 @@ def rollback_model(model_name: str, to_version: str) -> bool:
                 """),
                 {
                     "msg": f"Model '{model_name}' rolled back from v{current_version} to v{to_version}",
-                    "meta": json.dumps({
-                        "model_name": model_name,
-                        "from_version": current_version,
-                        "to_version": to_version,
-                        "rolled_back_at": datetime.now(timezone.utc).isoformat(),
-                    }),
+                    "meta": json.dumps(
+                        {
+                            "model_name": model_name,
+                            "from_version": current_version,
+                            "to_version": to_version,
+                            "rolled_back_at": datetime.now(timezone.utc).isoformat(),
+                        }
+                    ),
                 },
             )
         logger.info("Rollback alert inserted into alerts table")
@@ -169,11 +173,7 @@ def main() -> None:
     if not args.to_version:
         parser.error("--to-version is required (use --list to see available versions)")
 
-    models = (
-        [settings.demand_model_name, settings.waste_model_name]
-        if args.all
-        else [args.model]
-    )
+    models = [settings.demand_model_name, settings.waste_model_name] if args.all else [args.model]
 
     success = True
     for model_name in models:

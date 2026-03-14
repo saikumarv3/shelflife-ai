@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-import time
-
 import numpy as np
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
-from api.dependencies import get_db, get_model_manager, ModelManager
+from api.dependencies import ModelManager, get_db, get_model_manager
 from api.schemas import WasteRiskRequest, WasteRiskResponse
 from recommendation.engine import RecommendationEngine
 
@@ -25,17 +23,24 @@ async def predict_waste_risk(
     if not mm.is_loaded:
         raise HTTPException(status_code=503, detail="Model not available, try again later")
 
-    row = db.execute(
-        text("""
+    row = (
+        db.execute(
+            text("""
             SELECT * FROM feature_store
             WHERE store_id = :sid AND product_id = :pid
             ORDER BY ABS(date - CAST(:dt AS date)) LIMIT 1
         """),
-        {"sid": req.store_id, "pid": req.product_id, "dt": str(req.date)},
-    ).mappings().first()
+            {"sid": req.store_id, "pid": req.product_id, "dt": str(req.date)},
+        )
+        .mappings()
+        .first()
+    )
 
     if row is None:
-        raise HTTPException(status_code=404, detail=f"No features for store {req.store_id}, product {req.product_id}")
+        raise HTTPException(
+            status_code=404,
+            detail=f"No features for store {req.store_id}, product {req.product_id}",
+        )
 
     cols = mm.feature_columns
     vector = []
@@ -61,8 +66,11 @@ async def predict_waste_risk(
     excess = max(0, req.current_stock - int(predicted_demand))
     markdown_pct = RecommendationEngine._compute_markdown_pct(risk_score, req.days_until_expiry)
     explanation = _build_explanation(
-        risk_tier, req.days_until_expiry, req.current_stock,
-        predicted_demand, markdown_pct,
+        risk_tier,
+        req.days_until_expiry,
+        req.current_stock,
+        predicted_demand,
+        markdown_pct,
     )
 
     return WasteRiskResponse(

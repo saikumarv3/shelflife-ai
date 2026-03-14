@@ -1,6 +1,5 @@
 """Data quality tests — schema validation, null checks, FK integrity."""
 
-import pandas as pd
 from sqlalchemy import text
 
 
@@ -24,19 +23,21 @@ def test_daily_sales_row_count(db_engine):
 
 def test_no_negative_quantities(db_engine):
     with db_engine.connect() as conn:
-        neg = conn.execute(text(
-            "SELECT COUNT(*) FROM daily_sales WHERE quantity_sold < 0"
-        )).scalar()
+        neg = conn.execute(
+            text("SELECT COUNT(*) FROM daily_sales WHERE quantity_sold < 0")
+        ).scalar()
     assert neg == 0
 
 
 def test_no_orphan_sales(db_engine):
     with db_engine.connect() as conn:
-        orphans = conn.execute(text("""
+        orphans = conn.execute(
+            text("""
             SELECT COUNT(*) FROM daily_sales ds
             LEFT JOIN products p ON p.product_id = ds.product_id
             WHERE p.product_id IS NULL
-        """)).scalar()
+        """)
+        ).scalar()
     assert orphans == 0
 
 

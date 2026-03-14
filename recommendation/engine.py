@@ -51,8 +51,18 @@ class RecommendationEngine:
         return recommendations
 
     def _build_recommendation(
-        self, *, action, product_name, excess, current_stock, predicted_demand,
-        waste_risk_score, unit_price, cost_price, margin, days_until_expiry,
+        self,
+        *,
+        action,
+        product_name,
+        excess,
+        current_stock,
+        predicted_demand,
+        waste_risk_score,
+        unit_price,
+        cost_price,
+        margin,
+        days_until_expiry,
     ) -> dict | None:
         if excess == 0:
             return None
