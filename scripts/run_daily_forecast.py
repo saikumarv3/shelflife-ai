@@ -49,9 +49,10 @@ def run(target_date: date | None = None):
                     text("""
                     SELECT * FROM feature_store
                     WHERE store_id = :sid AND product_id = :pid
+                      AND date <= :target_date
                     ORDER BY date DESC LIMIT 1
                 """),
-                    {"sid": store_id, "pid": product_id},
+                    {"sid": store_id, "pid": product_id, "target_date": target_date},
                 )
                 .mappings()
                 .first()
