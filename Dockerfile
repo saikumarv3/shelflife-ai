@@ -10,6 +10,11 @@ COPY . .
 
 FROM python:3.12-slim
 
+# Required by LightGBM (OpenMP) and XGBoost
+RUN apt-get update -qq \
+ && apt-get install -y --no-install-recommends libgomp1 \
+ && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 COPY --from=builder /app /app
 ENV PATH="/app/.venv/bin:$PATH" \
