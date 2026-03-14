@@ -88,7 +88,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-shelflife}:${POSTGRES_PASSWORD}@postgres:5432/shelflife"
       REDIS_URL: "redis://redis:6379/0"
-      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      MLFLOW_TRACKING_URI: "sqlite:////app/artifacts/mlflow.db"
       API_KEY: ${API_KEY}
       API_WORKERS: ${API_WORKERS:-2}
       CORS_ORIGINS: "https://${DASHBOARD_DOMAIN},http://localhost:8501"
@@ -123,7 +123,7 @@ services:
     environment:
       DATABASE_URL: "postgresql://${POSTGRES_USER:-shelflife}:${POSTGRES_PASSWORD}@postgres:5432/shelflife"
       REDIS_URL: "redis://redis:6379/0"
-      MLFLOW_TRACKING_URI: "http://mlflow:5000"
+      MLFLOW_TRACKING_URI: "sqlite:////app/artifacts/mlflow.db"
     depends_on:
       api:
         condition: service_healthy

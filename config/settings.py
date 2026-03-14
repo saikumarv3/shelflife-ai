@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     test_redis_url: str = "redis://localhost:6379/1"
 
     # ── MLflow ────────────────────────────────────────────────
-    mlflow_tracking_uri: str = "http://localhost:5001"
+    mlflow_tracking_uri: str = "sqlite:////app/artifacts/mlflow.db"
 
     # ── API ───────────────────────────────────────────────────
     api_key: str = "sk_shelflife_dev_abc123"
