@@ -27,9 +27,7 @@ class DemandResponse(BaseModel):
 
 
 class BatchDemandRequest(BaseModel):
-    predictions: list[DemandRequest] = Field(
-        ..., min_length=1, max_length=500, description="Up to 500 predictions per batch"
-    )
+    predictions: list[DemandRequest] = Field(..., min_length=1, max_length=500, description="Up to 500 predictions per batch")
 
 
 class BatchDemandResponse(BaseModel):

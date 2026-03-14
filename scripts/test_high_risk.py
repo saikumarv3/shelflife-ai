@@ -35,6 +35,4 @@ print(f"RECOMMEND: risk={risk}, tier={tier}, actions={count}")
 for rec in d["recommendations"]:
     impact = rec["expected_impact"]
     print(f"  #{rec['priority']} {rec['action']}: {rec['description']}")
-    print(
-        f"     saved=${impact['waste_cost_saved_usd']}, waste_reduction={impact['waste_reduction_units']} units"
-    )
+    print(f"     saved=${impact['waste_cost_saved_usd']}, waste_reduction={impact['waste_reduction_units']} units")

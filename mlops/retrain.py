@@ -47,9 +47,7 @@ def should_retrain(engine: Engine) -> dict:
         )
 
     if last_alert:
-        days_since = (
-            datetime.now(timezone.utc).replace(tzinfo=None) - last_alert["created_at"]
-        ).days
+        days_since = (datetime.now(timezone.utc).replace(tzinfo=None) - last_alert["created_at"]).days
         triggers["schedule"] = days_since >= settings.retrain_schedule_days
     else:
         triggers["schedule"] = True
@@ -75,9 +73,7 @@ def should_retrain(engine: Engine) -> dict:
             triggers["mape_degraded"] = True
             break
 
-    triggers["should_retrain"] = any(
-        [triggers["schedule"], triggers["drift"], triggers["mape_degraded"]]
-    )
+    triggers["should_retrain"] = any([triggers["schedule"], triggers["drift"], triggers["mape_degraded"]])
     return triggers
 
 
@@ -90,13 +86,9 @@ def retrain_and_validate(engine: Engine | None = None) -> dict:
     logger.info("=" * 50)
 
     with engine.connect() as conn:
-        sales_df = pd.read_sql(
-            text("SELECT * FROM daily_sales ORDER BY store_id, product_id, date"), conn
-        )
+        sales_df = pd.read_sql(text("SELECT * FROM daily_sales ORDER BY store_id, product_id, date"), conn)
         products_df = pd.read_sql(text("SELECT * FROM products"), conn)
-        inventory_df = pd.read_sql(
-            text("SELECT * FROM inventory_snapshots ORDER BY store_id, product_id, date"), conn
-        )
+        inventory_df = pd.read_sql(text("SELECT * FROM inventory_snapshots ORDER BY store_id, product_id, date"), conn)
         stores_df = pd.read_sql(text("SELECT * FROM stores"), conn)
 
     logger.info("Data: %d sales, %d products", len(sales_df), len(products_df))
@@ -147,9 +139,7 @@ def retrain_and_validate(engine: Engine | None = None) -> dict:
     y_waste_test = waste_labels.loc[test_mask].values
 
     new_classifier = WasteRiskClassifier()
-    new_classifier.train(
-        X_train, waste_labels.loc[train_mask].values, X_val, waste_labels.loc[val_mask].values
-    )
+    new_classifier.train(X_train, waste_labels.loc[train_mask].values, X_val, waste_labels.loc[val_mask].values)
     new_waste_proba = new_classifier.predict_proba(X_test)
     new_waste_metrics = evaluate_waste_risk(y_waste_test, new_waste_proba)
 
@@ -173,9 +163,7 @@ def retrain_and_validate(engine: Engine | None = None) -> dict:
 
         if new_metrics["mape"] < current_metrics["mape"]:
             promoted = True
-            improvement = (
-                (current_metrics["mape"] - new_metrics["mape"]) / current_metrics["mape"] * 100
-            )
+            improvement = (current_metrics["mape"] - new_metrics["mape"]) / current_metrics["mape"] * 100
             logger.info("NEW MODEL WINS — MAPE improved by %.1f%%", improvement)
         else:
             logger.info("Current model is better or equal — keeping existing")

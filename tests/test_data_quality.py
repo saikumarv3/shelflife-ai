@@ -23,9 +23,7 @@ def test_daily_sales_row_count(db_engine):
 
 def test_no_negative_quantities(db_engine):
     with db_engine.connect() as conn:
-        neg = conn.execute(
-            text("SELECT COUNT(*) FROM daily_sales WHERE quantity_sold < 0")
-        ).scalar()
+        neg = conn.execute(text("SELECT COUNT(*) FROM daily_sales WHERE quantity_sold < 0")).scalar()
     assert neg == 0
 
 
@@ -51,7 +49,5 @@ def test_no_null_feature_columns(db_engine):
     critical = ["sales_lag_7d", "sales_rolling_7d_mean", "unit_price"]
     with db_engine.connect() as conn:
         for col in critical:
-            null_count = conn.execute(
-                text(f"SELECT COUNT(*) FROM feature_store WHERE {col} IS NULL")
-            ).scalar()
+            null_count = conn.execute(text(f"SELECT COUNT(*) FROM feature_store WHERE {col} IS NULL")).scalar()
             assert null_count == 0, f"feature_store.{col} has {null_count} nulls"

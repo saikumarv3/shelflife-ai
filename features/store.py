@@ -51,9 +51,7 @@ def save_features(df: pd.DataFrame, engine: Engine, if_exists: str = "replace") 
         with engine.begin() as conn:
             conn.execute(text("DELETE FROM feature_store"))
 
-    subset.to_sql(
-        "feature_store", engine, if_exists="append", index=False, method="multi", chunksize=2000
-    )
+    subset.to_sql("feature_store", engine, if_exists="append", index=False, method="multi", chunksize=2000)
     return len(subset)
 
 

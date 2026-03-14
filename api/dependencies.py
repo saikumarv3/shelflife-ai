@@ -26,9 +26,7 @@ _redis_pool: redis.ConnectionPool | None = None
 def _get_redis_pool() -> redis.ConnectionPool:
     global _redis_pool
     if _redis_pool is None:
-        _redis_pool = redis.ConnectionPool.from_url(
-            settings.redis_url, max_connections=settings.redis_max_connections
-        )
+        _redis_pool = redis.ConnectionPool.from_url(settings.redis_url, max_connections=settings.redis_max_connections)
     return _redis_pool
 
 

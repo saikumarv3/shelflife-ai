@@ -88,10 +88,7 @@ def run_drift_check(
         for feature in CRITICAL_FEATURES:
             train_rows = (
                 conn.execute(
-                    text(
-                        f"SELECT {feature} FROM feature_store "
-                        f"WHERE date < :cutoff AND {feature} IS NOT NULL"
-                    ),
+                    text(f"SELECT {feature} FROM feature_store WHERE date < :cutoff AND {feature} IS NOT NULL"),
                     {"cutoff": train_cutoff},
                 )
                 .scalars()
@@ -100,10 +97,7 @@ def run_drift_check(
 
             recent_rows = (
                 conn.execute(
-                    text(
-                        f"SELECT {feature} FROM feature_store "
-                        f"WHERE date >= :start_dt AND {feature} IS NOT NULL"
-                    ),
+                    text(f"SELECT {feature} FROM feature_store WHERE date >= :start_dt AND {feature} IS NOT NULL"),
                     {"start_dt": recent_start},
                 )
                 .scalars()
@@ -161,9 +155,7 @@ def _insert_drift_alert(engine: Engine, results: dict) -> None:
             """),
             {
                 "sev": "high" if len(drifted) > 2 else "medium",
-                "msg": (
-                    f"Data drift detected in {len(drifted)} feature(s): {', '.join(drifted.keys())}"
-                ),
+                "msg": (f"Data drift detected in {len(drifted)} feature(s): {', '.join(drifted.keys())}"),
                 "meta": json.dumps({k: v for k, v in drifted.items()}),
             },
         )

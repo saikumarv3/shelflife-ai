@@ -76,9 +76,7 @@ def evaluate_forecast(
 # ── Waste risk metrics ───────────────────────────────────────
 
 
-def evaluate_waste_risk(
-    y_true: np.ndarray, y_proba: np.ndarray, threshold: float = 0.5
-) -> dict[str, float]:
+def evaluate_waste_risk(y_true: np.ndarray, y_proba: np.ndarray, threshold: float = 0.5) -> dict[str, float]:
     """Compute all waste risk classification metrics."""
     y_pred = (y_proba >= threshold).astype(int)
     return {
@@ -86,18 +84,14 @@ def evaluate_waste_risk(
         "recall": float(recall_score(y_true, y_pred, zero_division=0)),
         "f1": float(f1_score(y_true, y_pred, zero_division=0)),
         "auc_roc": float(roc_auc_score(y_true, y_proba)) if len(np.unique(y_true)) > 1 else 0.0,
-        "auc_pr": float(average_precision_score(y_true, y_proba))
-        if len(np.unique(y_true)) > 1
-        else 0.0,
+        "auc_pr": float(average_precision_score(y_true, y_proba)) if len(np.unique(y_true)) > 1 else 0.0,
     }
 
 
 # ── Baseline models ──────────────────────────────────────────
 
 
-def compute_baselines(
-    y_true: np.ndarray, y_lag1: np.ndarray, y_lag7: np.ndarray
-) -> dict[str, float]:
+def compute_baselines(y_true: np.ndarray, y_lag1: np.ndarray, y_lag7: np.ndarray) -> dict[str, float]:
     """Compute MAPE for naive baselines."""
     baselines = {}
 

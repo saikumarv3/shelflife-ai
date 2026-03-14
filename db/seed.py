@@ -55,9 +55,7 @@ def seed() -> None:
         for p in data.products:
             db.add(Product(**p))
         db.commit()
-        print(
-            f"       {len(data.stores)} stores, {len(data.categories)} categories, {len(data.products)} products inserted."
-        )
+        print(f"       {len(data.stores)} stores, {len(data.categories)} categories, {len(data.products)} products inserted.")
 
         # ── Bulk insert sales ─────────────────────────────
         print(f"\n[4/5] Inserting {len(data.sales):,} daily_sales rows (bulk)...")

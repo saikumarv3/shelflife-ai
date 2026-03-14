@@ -77,9 +77,7 @@ class Product(Base):
 
 class DailySale(Base):
     __tablename__ = "daily_sales"
-    __table_args__ = (
-        UniqueConstraint("store_id", "product_id", "date", name="uq_sale_store_product_date"),
-    )
+    __table_args__ = (UniqueConstraint("store_id", "product_id", "date", name="uq_sale_store_product_date"),)
 
     sale_id = Column(Integer, primary_key=True, autoincrement=True)
     store_id = Column(Integer, ForeignKey("stores.store_id"), nullable=False, index=True)
@@ -105,9 +103,7 @@ class DailySale(Base):
 
 class InventorySnapshot(Base):
     __tablename__ = "inventory_snapshots"
-    __table_args__ = (
-        UniqueConstraint("store_id", "product_id", "date", name="uq_inventory_store_product_date"),
-    )
+    __table_args__ = (UniqueConstraint("store_id", "product_id", "date", name="uq_inventory_store_product_date"),)
 
     snapshot_id = Column(Integer, primary_key=True, autoincrement=True)
     store_id = Column(Integer, ForeignKey("stores.store_id"), nullable=False, index=True)
@@ -158,9 +154,7 @@ class Prediction(Base):
 
 class FeatureRow(Base):
     __tablename__ = "feature_store"
-    __table_args__ = (
-        UniqueConstraint("store_id", "product_id", "date", name="uq_feature_store_product_date"),
-    )
+    __table_args__ = (UniqueConstraint("store_id", "product_id", "date", name="uq_feature_store_product_date"),)
 
     feature_id = Column(Integer, primary_key=True, autoincrement=True)
     store_id = Column(Integer, ForeignKey("stores.store_id"), nullable=False, index=True)

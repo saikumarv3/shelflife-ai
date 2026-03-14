@@ -62,9 +62,7 @@ def page_demand_forecast(store_id: int):
     df = query(sql, {"sid": store_id, "d1": str(date_from), "d2": str(date_to)})
 
     if df.empty:
-        st.info(
-            "No data for selected filters. Run `uv run python -m scripts.run_daily_forecast` to generate predictions."
-        )
+        st.info("No data for selected filters. Run `uv run python -m scripts.run_daily_forecast` to generate predictions.")
         return
 
     if cat_filter != "All":
@@ -74,9 +72,7 @@ def page_demand_forecast(store_id: int):
     if "predicted" in df.columns and df["predicted"].notna().any():
         matched = df.dropna(subset=["predicted", "actual"])
         if not matched.empty:
-            mape_val = (
-                abs(matched["predicted"] - matched["actual"]) / matched["actual"].clip(lower=1)
-            ).mean()
+            mape_val = (abs(matched["predicted"] - matched["actual"]) / matched["actual"].clip(lower=1)).mean()
             c1, c2, c3 = st.columns(3)
             c1.metric("MAPE", f"{mape_val:.1%}")
             c2.metric("Predictions", f"{len(matched):,}")
@@ -93,9 +89,7 @@ def page_demand_forecast(store_id: int):
     )
 
     fig = go.Figure()
-    fig.add_trace(
-        go.Scatter(x=daily["date"], y=daily["actual"], name="Actual", line=dict(color="#2563eb"))
-    )
+    fig.add_trace(go.Scatter(x=daily["date"], y=daily["actual"], name="Actual", line=dict(color="#2563eb")))
     if daily["predicted"].notna().any():
         fig.add_trace(
             go.Scatter(
@@ -165,12 +159,7 @@ def page_waste_risk(store_id: int):
     c4.metric("~Meals Lost", f"{int(kg_wasted * 2.5):,}")
 
     # Waste by category
-    by_cat = (
-        df.groupby("category")
-        .agg(wasted=("units_wasted", "sum"))
-        .sort_values("wasted", ascending=False)
-        .reset_index()
-    )
+    by_cat = df.groupby("category").agg(wasted=("units_wasted", "sum")).sort_values("wasted", ascending=False).reset_index()
     fig = px.bar(
         by_cat,
         x="category",
@@ -199,9 +188,7 @@ def page_waste_risk(store_id: int):
         if not at_risk.empty:
             st.subheader("At-Risk Items (3 days to expiry)")
             st.dataframe(
-                at_risk[
-                    ["product_name", "category", "quantity_on_hand", "days_until_expiry"]
-                ].sort_values("days_until_expiry"),
+                at_risk[["product_name", "category", "quantity_on_hand", "days_until_expiry"]].sort_values("days_until_expiry"),
                 use_container_width=True,
                 hide_index=True,
             )
@@ -228,18 +215,14 @@ def page_recommendations(store_id: int):
     df = query(sql, {"sid": store_id})
 
     if df.empty:
-        st.info(
-            "No recommendations generated yet. Use the `/recommend` API endpoint to generate some."
-        )
+        st.info("No recommendations generated yet. Use the `/recommend` API endpoint to generate some.")
         return
 
     # KPIs
     total = len(df)
     accepted = len(df[df["status"] == "accepted"])
     expected_savings = df["expected_cost_saved_usd"].sum()
-    actual_savings = (
-        df["actual_cost_saved_usd"].sum() if "actual_cost_saved_usd" in df.columns else 0
-    )
+    actual_savings = df["actual_cost_saved_usd"].sum() if "actual_cost_saved_usd" in df.columns else 0
 
     c1, c2, c3, c4 = st.columns(4)
     c1.metric("Total Recs", total)
@@ -249,9 +232,7 @@ def page_recommendations(store_id: int):
 
     # By action type
     by_action = df.groupby("action_type").size().reset_index(name="count")
-    fig = px.pie(
-        by_action, names="action_type", values="count", title="Recommendations by Action Type"
-    )
+    fig = px.pie(by_action, names="action_type", values="count", title="Recommendations by Action Type")
     st.plotly_chart(fig, use_container_width=True)
 
     st.subheader("Recent Recommendations")

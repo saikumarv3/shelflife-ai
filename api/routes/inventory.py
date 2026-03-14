@@ -26,9 +26,7 @@ async def get_inventory(
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
 ):
-    store = db.execute(
-        text("SELECT store_id FROM stores WHERE store_id = :sid"), {"sid": store_id}
-    ).first()
+    store = db.execute(text("SELECT store_id FROM stores WHERE store_id = :sid"), {"sid": store_id}).first()
     if not store:
         raise HTTPException(status_code=404, detail=f"Store {store_id} not found")
 
@@ -155,9 +153,7 @@ async def update_inventory(
         .first()
     )
 
-    rolling_mape = (
-        round(float(mape_row["avg_mape"]) * 100, 1) if mape_row and mape_row["avg_mape"] else None
-    )
+    rolling_mape = round(float(mape_row["avg_mape"]) * 100, 1) if mape_row and mape_row["avg_mape"] else None
 
     return InventoryUpdateResponse(
         store_id=req.store_id,

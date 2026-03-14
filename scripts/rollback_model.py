@@ -60,11 +60,7 @@ def rollback_model(model_name: str, to_version: str) -> bool:
 
     # Find current Production version
     try:
-        prod_versions = [
-            v
-            for v in client.search_model_versions(f"name='{model_name}'")
-            if v.current_stage == "Production"
-        ]
+        prod_versions = [v for v in client.search_model_versions(f"name='{model_name}'") if v.current_stage == "Production"]
     except Exception as exc:
         logger.error("MLflow unavailable: %s", exc)
         return False
@@ -139,9 +135,7 @@ def rollback_model(model_name: str, to_version: str) -> bool:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(
-        description="Roll back a ShelfLife AI model to a previous MLflow version"
-    )
+    parser = argparse.ArgumentParser(description="Roll back a ShelfLife AI model to a previous MLflow version")
     parser.add_argument(
         "--model",
         default=settings.demand_model_name,

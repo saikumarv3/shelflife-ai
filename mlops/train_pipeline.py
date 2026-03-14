@@ -73,15 +73,11 @@ class TrainPipeline:
             X_train, y_train, X_val, y_val, X_test, y_test, test_meta = self._split(feat_df)
 
             # Step 4: Demand forecast
-            demand_metrics = self._train_demand(
-                X_train, y_train, X_val, y_val, X_test, y_test, test_meta, run_id
-            )
+            demand_metrics = self._train_demand(X_train, y_train, X_val, y_val, X_test, y_test, test_meta, run_id)
 
             # Step 5: Waste risk
             waste_labels = WasteRiskClassifier.build_labels(sales_df)
-            waste_metrics = self._train_waste_risk(
-                feat_df, waste_labels, X_train, X_val, X_test, run_id
-            )
+            waste_metrics = self._train_waste_risk(feat_df, waste_labels, X_train, X_val, X_test, run_id)
 
             # Step 6: Baselines
             baselines = self._compute_baselines(feat_df, y_test, X_test)
@@ -133,13 +129,9 @@ class TrainPipeline:
     def _extract_data(self):
         logger.info("[1/7] Extracting data from PostgreSQL...")
         with engine.connect() as conn:
-            sales_df = pd.read_sql(
-                text("SELECT * FROM daily_sales ORDER BY store_id, product_id, date"), conn
-            )
+            sales_df = pd.read_sql(text("SELECT * FROM daily_sales ORDER BY store_id, product_id, date"), conn)
             products_df = pd.read_sql(text("SELECT * FROM products"), conn)
-            inventory_df = pd.read_sql(
-                text("SELECT * FROM inventory_snapshots ORDER BY store_id, product_id, date"), conn
-            )
+            inventory_df = pd.read_sql(text("SELECT * FROM inventory_snapshots ORDER BY store_id, product_id, date"), conn)
             stores_df = pd.read_sql(text("SELECT * FROM stores"), conn)
 
         logger.info(
@@ -195,18 +187,14 @@ class TrainPipeline:
         X_test = feat_df.loc[test_mask, feature_cols].values.astype(np.float32)
         y_test = feat_df.loc[test_mask, target].values.astype(np.float32)
 
-        test_meta = feat_df.loc[
-            test_mask, ["store_id", "product_id", "date", "unit_price", "cost_price"]
-        ].copy()
+        test_meta = feat_df.loc[test_mask, ["store_id", "product_id", "date", "unit_price", "cost_price"]].copy()
 
         logger.info("  Train: %d | Val: %d | Test: %d", len(X_train), len(X_val), len(X_test))
         return X_train, y_train, X_val, y_val, X_test, y_test, test_meta
 
     # ── Step 4: Demand forecast ─────────────────────────────────
 
-    def _train_demand(
-        self, X_train, y_train, X_val, y_val, X_test, y_test, test_meta, run_id
-    ) -> dict:
+    def _train_demand(self, X_train, y_train, X_val, y_val, X_test, y_test, test_meta, run_id) -> dict:
         logger.info("[4/7] Training demand forecast (XGBoost + LightGBM ensemble)...")
         forecaster = DemandForecaster()
         forecaster.train(X_train, y_train, X_val, y_val)
@@ -300,9 +288,7 @@ class TrainPipeline:
         print("=" * 60)
         print(f"  Run ID:        {summary['run_id'][:12]}...")
         print(f"  Elapsed:       {summary['elapsed_seconds']}s")
-        print(
-            f"  Data split:    {summary['train_size']} / {summary['val_size']} / {summary['test_size']}"
-        )
+        print(f"  Data split:    {summary['train_size']} / {summary['val_size']} / {summary['test_size']}")
         print()
         print("  DEMAND FORECAST:")
         for k, v in summary["demand"].items():

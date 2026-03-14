@@ -92,9 +92,7 @@ class RecommendationEngine:
         elif action.name == "adjust_order":
             reduction = max(1, excess)
             target = max(0, current_stock - reduction)
-            desc = action.description_template.format(
-                reduction=reduction, current=current_stock, target=target
-            )
+            desc = action.description_template.format(reduction=reduction, current=current_stock, target=target)
             sell_through = reduction
             revenue_loss = 0.0
             saved = round(reduction * cost_price, 2)

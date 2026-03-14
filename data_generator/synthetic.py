@@ -365,16 +365,7 @@ def generate_all() -> SyntheticData:
                 else:
                     temp_mult = 1.0
 
-                raw_demand = (
-                    base
-                    * store_mult
-                    * weekday_mult
-                    * seasonal_mult
-                    * holiday_mult
-                    * promo_mult
-                    * temp_mult
-                    * trend_mult
-                )
+                raw_demand = base * store_mult * weekday_mult * seasonal_mult * holiday_mult * promo_mult * temp_mult * trend_mult
                 noise_sigma = raw_demand * RNG.uniform(0.08, 0.15)
                 demand = max(0, int(round(raw_demand + RNG.normal(0, noise_sigma))))
 

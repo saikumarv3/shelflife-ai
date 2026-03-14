@@ -92,9 +92,7 @@ class FeatureEngineer:
         df["date"] = pd.to_datetime(df["date"])
         df = df.sort_values(["store_id", "product_id", "date"]).reset_index(drop=True)
 
-        inv = self.inventory[
-            ["store_id", "product_id", "date", "quantity_on_hand", "days_until_expiry"]
-        ].copy()
+        inv = self.inventory[["store_id", "product_id", "date", "quantity_on_hand", "days_until_expiry"]].copy()
         inv["date"] = pd.to_datetime(inv["date"])
 
         df = df.merge(inv, on=["store_id", "product_id", "date"], how="left")
@@ -133,56 +131,34 @@ class FeatureEngineer:
     def _add_rolling(self, df: pd.DataFrame) -> pd.DataFrame:
         group = df.groupby(["store_id", "product_id"])
 
-        roll7 = group["quantity_sold"].transform(
-            lambda x: x.shift(1).rolling(7, min_periods=1).mean()
-        )
+        roll7 = group["quantity_sold"].transform(lambda x: x.shift(1).rolling(7, min_periods=1).mean())
         df["sales_rolling_7d_mean"] = roll7
 
-        df["sales_rolling_7d_std"] = group["quantity_sold"].transform(
-            lambda x: x.shift(1).rolling(7, min_periods=2).std()
-        )
+        df["sales_rolling_7d_std"] = group["quantity_sold"].transform(lambda x: x.shift(1).rolling(7, min_periods=2).std())
 
-        df["sales_rolling_14d_mean"] = group["quantity_sold"].transform(
-            lambda x: x.shift(1).rolling(14, min_periods=1).mean()
-        )
+        df["sales_rolling_14d_mean"] = group["quantity_sold"].transform(lambda x: x.shift(1).rolling(14, min_periods=1).mean())
 
-        df["sales_rolling_28d_mean"] = group["quantity_sold"].transform(
-            lambda x: x.shift(1).rolling(28, min_periods=1).mean()
-        )
+        df["sales_rolling_28d_mean"] = group["quantity_sold"].transform(lambda x: x.shift(1).rolling(28, min_periods=1).mean())
 
-        df["waste_rolling_7d_sum"] = group["units_wasted"].transform(
-            lambda x: x.shift(1).rolling(7, min_periods=1).sum()
-        )
+        df["waste_rolling_7d_sum"] = group["units_wasted"].transform(lambda x: x.shift(1).rolling(7, min_periods=1).sum())
 
-        sold_roll = group["quantity_sold"].transform(
-            lambda x: x.shift(1).rolling(7, min_periods=1).sum()
-        )
-        waste_roll = group["units_wasted"].transform(
-            lambda x: x.shift(1).rolling(7, min_periods=1).sum()
-        )
+        sold_roll = group["quantity_sold"].transform(lambda x: x.shift(1).rolling(7, min_periods=1).sum())
+        waste_roll = group["units_wasted"].transform(lambda x: x.shift(1).rolling(7, min_periods=1).sum())
         df["waste_rolling_7d_rate"] = (waste_roll / sold_roll.replace(0, np.nan)).fillna(0)
 
-        df["revenue_rolling_7d"] = group["revenue"].transform(
-            lambda x: x.shift(1).rolling(7, min_periods=1).sum()
-        )
+        df["revenue_rolling_7d"] = group["revenue"].transform(lambda x: x.shift(1).rolling(7, min_periods=1).sum())
 
-        df["sales_rolling_7d_median"] = group["quantity_sold"].transform(
-            lambda x: x.shift(1).rolling(7, min_periods=1).median()
-        )
+        df["sales_rolling_7d_median"] = group["quantity_sold"].transform(lambda x: x.shift(1).rolling(7, min_periods=1).median())
 
         return df
 
     # ── Product features ──────────────────────────────────
 
     def _add_product_features(self, df: pd.DataFrame) -> pd.DataFrame:
-        prod = self.products[
-            ["product_id", "unit_price", "cost_price", "shelf_life_days", "category_id"]
-        ].copy()
+        prod = self.products[["product_id", "unit_price", "cost_price", "shelf_life_days", "category_id"]].copy()
         prod["unit_price"] = prod["unit_price"].astype(float)
         prod["cost_price"] = prod["cost_price"].astype(float)
-        prod["margin_pct"] = (prod["unit_price"] - prod["cost_price"]) / prod["unit_price"].replace(
-            0, np.nan
-        )
+        prod["margin_pct"] = (prod["unit_price"] - prod["cost_price"]) / prod["unit_price"].replace(0, np.nan)
         prod["margin_pct"] = prod["margin_pct"].fillna(0)
         prod["category_encoded"] = prod["category_id"] - 1
         prod = prod.drop(columns=["category_id"])
@@ -213,9 +189,7 @@ class FeatureEngineer:
         df["_promo_cumcount"] = group["is_promotion"].cumsum()
         df["_last_promo_date"] = df["date"].where(df["is_promotion"] == 1)
         df["_last_promo_date"] = group["_last_promo_date"].ffill()
-        df["days_since_last_promo"] = (
-            (df["date"] - df["_last_promo_date"]).dt.days.fillna(999).astype(int)
-        )
+        df["days_since_last_promo"] = (df["date"] - df["_last_promo_date"]).dt.days.fillna(999).astype(int)
         df = df.drop(columns=["_promo_cumcount", "_last_promo_date"])
 
         avg_sales_7d = df["sales_rolling_7d_mean"].replace(0, np.nan)
