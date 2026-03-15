@@ -1,9 +1,7 @@
 name: ShelfLife AI — Deploy to Production
 
-# Triggered automatically on push to main, or manually via workflow_dispatch.
-#
-# Manual dispatch lets you deploy any branch/tag without merging to main.
-# Choose a ref (branch or tag) and optionally skip lint+test for a fast hotfix.
+# Push to main → build + deploy (lint/test already passed on feature branch).
+# Manual dispatch → optionally run lint+test, then build + deploy.
 #
 # Required GitHub Secrets (Settings → Secrets → Actions):
 #   GHCR_TOKEN              — GitHub PAT (scope: write:packages)
@@ -19,8 +17,8 @@ on:
         description: "Branch or tag to build and deploy"
         required: true
         default: "main"
-      skip_tests:
-        description: "Skip lint and tests (use for hotfixes only)"
+      run_tests:
+        description: "Run lint + tests before building"
         type: boolean
         default: false
 
@@ -30,11 +28,10 @@ env:
   IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}
 
 jobs:
-  # ── 1. Lint ────────────────────────────────────────────────────────
+  # ── 1. Lint (manual dispatch with run_tests=true only) ───────────
   lint:
     name: Lint
-    # Skip if manually triggered with skip_tests=true
-    if: github.event_name == 'push' || !inputs.skip_tests
+    if: github.event_name == 'workflow_dispatch' && inputs.run_tests
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -47,10 +44,10 @@ jobs:
       - run: uv run ruff check .
       - run: uv run ruff format --check .
 
-  # ── 2. Test ────────────────────────────────────────────────────────
+  # ── 2. Test (manual dispatch with run_tests=true only) ───────────
   test:
     name: Test
-    if: github.event_name == 'push' || !inputs.skip_tests
+    if: github.event_name == 'workflow_dispatch' && inputs.run_tests
     runs-on: ubuntu-latest
     needs: lint
     services:
@@ -98,11 +95,10 @@ jobs:
           PYTHONIOENCODING: utf-8
       - run: uv run pytest tests/ -v --tb=short
 
-  # ── 3. Build & Push Docker images to GHCR ─────────────────────────
+  # ── 3. Build & Push Docker images to GHCR ───────────────────────
   build:
     name: Build & Push Images
     runs-on: ubuntu-latest
-    # Run after test if tests were not skipped; otherwise run directly
     needs: [lint, test]
     if: always() && !failure() && !cancelled()
     permissions:
@@ -163,7 +159,7 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-  # ── 4. Deploy via Coolify webhooks ────────────────────────────────
+  # ── 4. Deploy via Coolify webhooks ──────────────────────────────
   deploy:
     name: Deploy to Hetzner via Coolify
     runs-on: ubuntu-latest
