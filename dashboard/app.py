@@ -175,18 +175,26 @@ def header_bar(store_id: int):
 
 
 def scroll_to_top():
-    """Scroll the main content area back to the top on every navigation change."""
+    """Scroll window to top on every navigation change.
+
+    In Streamlit wide layout the sidebar is position:fixed and the whole
+    browser window scrolls — so we target window / body / documentElement,
+    not an inner div.  We retry 3 times to catch async content renders.
+    """
     components.html(
-        "<script>"
-        "function _scrollTop() {"
-        "  var el = window.parent.document.querySelector('section[data-testid=\"stMain\"]');"
-        "  if (el) { el.scrollTop = 0; }"
-        "}"
-        "_scrollTop();"
-        "setTimeout(_scrollTop, 80);"
-        "setTimeout(_scrollTop, 250);"
-        "</script>",
-        height=1,
+        """<script>
+        (function () {
+            function go() {
+                try { window.parent.scrollTo(0, 0); } catch (e) {}
+                try { window.parent.document.documentElement.scrollTop = 0; } catch (e) {}
+                try { window.parent.document.body.scrollTop = 0; } catch (e) {}
+            }
+            go();
+            setTimeout(go, 120);
+            setTimeout(go, 400);
+        })();
+        </script>""",
+        height=0,
     )
 
 
