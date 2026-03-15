@@ -178,10 +178,15 @@ def scroll_to_top():
     """Scroll the main content area back to the top on every navigation change."""
     components.html(
         "<script>"
-        "const el = window.parent.document.querySelector('section[data-testid=\"stMain\"]');"
-        "if (el) el.scrollTo({ top: 0, behavior: 'instant' });"
+        "function _scrollTop() {"
+        "  var el = window.parent.document.querySelector('section[data-testid=\"stMain\"]');"
+        "  if (el) { el.scrollTop = 0; }"
+        "}"
+        "_scrollTop();"
+        "setTimeout(_scrollTop, 80);"
+        "setTimeout(_scrollTop, 250);"
         "</script>",
-        height=0,
+        height=1,
     )
 
 

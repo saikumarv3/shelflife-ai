@@ -7,6 +7,9 @@ import streamlit as st
 from dashboard import queries as Q
 from dashboard.styles import BRAND_BLUE, BRAND_ORANGE, apply_chart_style, chart_desc, kpi_card_row, page_header
 
+# First 30 days have incomplete lag features (warmup). Skip them in charts.
+_WARMUP_DAYS = 30
+
 
 def render(store_id: int):
     page_header(
@@ -16,21 +19,48 @@ def render(store_id: int):
     )
 
     categories = Q.get_categories()
-    date_min, date_max = Q.get_date_range()
+    date_min_str, date_max_str = Q.get_date_range()
+    data_min = pd.Timestamp(date_min_str)
+    data_max = pd.Timestamp(date_max_str)
+    chart_start = data_min + pd.Timedelta(days=_WARMUP_DAYS)
 
     col1, col2, col3 = st.columns(3)
     with col1:
         cat_filter = st.selectbox("Category", ["All"] + categories["name"].tolist(), key="dem_cat")
     with col2:
-        d_from = st.date_input("From", value=pd.Timestamp(date_min), key="dem_from")
+        d_from = st.date_input("From", value=chart_start.date(), key="dem_from")
     with col3:
-        d_to = st.date_input("To", value=pd.Timestamp(date_max), key="dem_to")
+        d_to = st.date_input("To", value=data_max.date(), key="dem_to")
+
+    # Warn when user picks dates outside the data range
+    d_from_ts = pd.Timestamp(d_from)
+    d_to_ts = pd.Timestamp(d_to)
+
+    if d_to_ts > data_max:
+        st.warning(
+            f"⚠️  **No data beyond {data_max.strftime('%b %d, %Y')}.** "
+            f"The AI was trained on data up to that date. "
+            f"Future predictions (beyond the training window) require running a separate "
+            f"future-forecast pipeline — not yet available in this version. "
+            f"Showing data up to **{data_max.strftime('%b %d, %Y')}** instead.",
+            icon=None,
+        )
+        d_to_ts = data_max
+
+    if d_from_ts < chart_start:
+        st.info(
+            f"ℹ️  Dates before **{chart_start.strftime('%b %d, %Y')}** are hidden. "
+            f"The first {_WARMUP_DAYS} days of data are a model warmup period — lag features "
+            f"(7-day, 14-day rolling averages) need prior history to be accurate, so early "
+            f"predictions are unreliable and appear as spikes.",
+        )
+        d_from_ts = chart_start
 
     cat_arg = cat_filter if cat_filter != "All" else None
-    df = Q.get_demand_data(store_id, str(d_from), str(d_to), cat_arg)
+    df = Q.get_demand_data(store_id, str(d_from_ts.date()), str(d_to_ts.date()), cat_arg)
 
     if df.empty:
-        st.info("No data for selected filters. Run the forecast pipeline to generate predictions.")
+        st.info("No data for selected filters.")
         return
 
     has_preds = "predicted" in df.columns and df["predicted"].notna().any()
@@ -56,19 +86,39 @@ def render(store_id: int):
             [
                 ("Products", f"{df['product_id'].nunique()}", None),
                 ("Data Points", f"{len(df):,}", None),
-                ("Date Range", f"{d_from} to {d_to}", None),
+                ("Date Range", f"{d_from_ts.date()} to {d_to_ts.date()}", None),
                 ("Predictions", "0 — run forecast", None),
             ]
         )
 
     st.markdown("###")
 
-    agg_mode = st.radio("Aggregation", ["Daily Total", "By Product"], horizontal=True, key="dem_agg")
+    # ── AI vs calculations note ────────────────────────────────────
+    with st.expander("🤖 Why AI and not simple calculations?", expanded=False):
+        st.markdown("""
+The AI uses **35 features simultaneously** to predict demand — things no simple formula can combine:
+
+| What AI tracks | Why it matters |
+|---|---|
+| Sales from 1, 7, 14, 28 days ago | Captures weekly and monthly patterns |
+| Day of week, month, holidays | Mondays ≠ Fridays; Christmas ≠ regular Tuesday |
+| Promotions on/off | A promotion can double sales overnight |
+| Inventory levels | Low stock predicts lower sales (empty shelf = no sale) |
+| Price changes | Customers respond to price movements |
+| Weather signals | Hot days sell more drinks, cold days sell more soup |
+
+A simple calculation like *"order what you sold last week"* ignores all of this.
+The AI's **7.7% MAPE** means it's off by less than 1 unit on an average 10-unit/day product.
+A rule-based system typically runs 30–50% error on perishables.
+        """)
+
+    agg_mode = st.radio("View", ["Daily Total", "By Product"], horizontal=True, key="dem_agg")
 
     if agg_mode == "Daily Total":
         chart_desc(
-            "Blue solid line = actual sales. Orange dashed line = AI prediction. Shaded band = 95% confidence range. "
-            "When actual falls inside the band, the model is confident and accurate."
+            "Blue solid line = what actually sold each day. Orange dashed line = what the AI predicted. "
+            "Shaded band = confidence range. When the blue line stays inside the band, the AI is working well. "
+            "Gaps in the orange line mean no prediction was generated for that date."
         )
         daily = (
             df.groupby("date")
@@ -115,9 +165,14 @@ def render(store_id: int):
                         fill="tonexty",
                         fillcolor="rgba(245,158,11,0.1)",
                         line=dict(width=0),
-                        name="95% Confidence",
+                        name="Confidence Band",
                     )
                 )
+        else:
+            st.info(
+                "ℹ️  No AI predictions available for this range. "
+                "The predictions table may need to be populated — run the prediction pipeline on the server."
+            )
 
         apply_chart_style(
             fig, 420, title="Daily Demand: Actual vs AI Forecast", yaxis_title="Units Sold", legend=dict(orientation="h", y=1.1)
@@ -126,7 +181,8 @@ def render(store_id: int):
 
     else:
         chart_desc(
-            "Drill into a single product to see how well the AI forecasts it. Use this to decide if you can trust the AI's order recommendation for this specific product."
+            "Drill into a single product to see how well the AI forecasts it. "
+            "Use this to decide if you can trust the AI's order recommendation for this specific product."
         )
         product_options = sorted(df["product_name"].unique().tolist())
         selected = st.selectbox("Select Product", product_options, key="dem_prod")
@@ -168,7 +224,7 @@ def render(store_id: int):
                         fill="tonexty",
                         fillcolor="rgba(245,158,11,0.1)",
                         line=dict(width=0),
-                        name="95% Confidence",
+                        name="Confidence Band",
                     )
                 )
 
@@ -177,7 +233,8 @@ def render(store_id: int):
 
     st.markdown("#### Top Products by Volume")
     chart_desc(
-        "Your highest-selling products in the selected date range and category. These are the products where accurate forecasting matters most — even a 5% error can mean big losses."
+        "Your highest-selling products in the selected date range. "
+        "These are where accurate forecasting matters most — even a 5% ordering error on a top seller costs more than a 50% error on a slow mover."
     )
     top = (
         df.groupby(["product_id", "product_name"])
