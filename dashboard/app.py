@@ -148,7 +148,7 @@ def header_bar(store_id: int):
         "border-radius:20px; padding:3px 10px; transition:color 0.2s;"
         "letter-spacing:0.04em;"
         "'>"
-        "<span style='font-size:0.6rem;'>⚗️</span> by ChoutuLab"
+        "<span style='font-size:0.6rem;'>⚗️</span> by ChotuLab"
         "</a>"
         "</div></div>"
         # right — context pills
