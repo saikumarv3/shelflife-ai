@@ -44,8 +44,8 @@ logger = logging.getLogger(__name__)
 class TrainPipeline:
     """Full training pipeline: extract → features → split → train → evaluate → register."""
 
-    TRAIN_CUTOFF = "2024-10-01"
-    VAL_CUTOFF = "2024-11-15"
+    TRAIN_RATIO = 0.65
+    VAL_RATIO = 0.15
 
     def __init__(self):
         self.registry = ModelRegistry()
@@ -164,19 +164,25 @@ class TrainPipeline:
     # ── Step 3: Split ──────────────────────────────────────────
 
     def _split(self, feat_df: pd.DataFrame):
-        logger.info(
-            "[3/7] Time-based split: train < %s | val < %s | test = rest",
-            self.TRAIN_CUTOFF,
-            self.VAL_CUTOFF,
-        )
-
         feature_cols = FeatureEngineer.FEATURE_COLUMNS
         target = "quantity_sold"
 
         feat_df["date"] = pd.to_datetime(feat_df["date"])
-        train_mask = feat_df["date"] < self.TRAIN_CUTOFF
-        val_mask = (feat_df["date"] >= self.TRAIN_CUTOFF) & (feat_df["date"] < self.VAL_CUTOFF)
-        test_mask = feat_df["date"] >= self.VAL_CUTOFF
+        dates = sorted(feat_df["date"].unique())
+        n = len(dates)
+        train_cutoff = dates[int(n * self.TRAIN_RATIO)]
+        val_cutoff = dates[int(n * (self.TRAIN_RATIO + self.VAL_RATIO))]
+
+        logger.info(
+            "[3/7] Time-based split: train < %s | val < %s | test = rest (%d unique dates)",
+            str(train_cutoff.date()),
+            str(val_cutoff.date()),
+            n,
+        )
+
+        train_mask = feat_df["date"] < train_cutoff
+        val_mask = (feat_df["date"] >= train_cutoff) & (feat_df["date"] < val_cutoff)
+        test_mask = feat_df["date"] >= val_cutoff
 
         X_train = feat_df.loc[train_mask, feature_cols].values.astype(np.float32)
         y_train = feat_df.loc[train_mask, target].values.astype(np.float32)
@@ -228,10 +234,14 @@ class TrainPipeline:
     def _train_waste_risk(self, feat_df, waste_labels, X_train, X_val, X_test, run_id) -> dict:
         logger.info("[5/7] Training waste risk classifier...")
         feat_df["date"] = pd.to_datetime(feat_df["date"])
+        dates = sorted(feat_df["date"].unique())
+        n = len(dates)
+        train_cutoff = dates[int(n * self.TRAIN_RATIO)]
+        val_cutoff = dates[int(n * (self.TRAIN_RATIO + self.VAL_RATIO))]
 
-        train_mask = feat_df["date"] < self.TRAIN_CUTOFF
-        val_mask = (feat_df["date"] >= self.TRAIN_CUTOFF) & (feat_df["date"] < self.VAL_CUTOFF)
-        test_mask = feat_df["date"] >= self.VAL_CUTOFF
+        train_mask = feat_df["date"] < train_cutoff
+        val_mask = (feat_df["date"] >= train_cutoff) & (feat_df["date"] < val_cutoff)
+        test_mask = feat_df["date"] >= val_cutoff
 
         y_waste_train = waste_labels.loc[train_mask].values
         y_waste_val = waste_labels.loc[val_mask].values
