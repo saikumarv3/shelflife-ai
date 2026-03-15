@@ -1,318 +1,214 @@
-"""ShelfLife AI — Streamlit Dashboard (4 pages)."""
+"""ShelfLife AI — Premium Dashboard.
 
-import pandas as pd
-import plotly.express as px
-import plotly.graph_objects as go
+AI-powered inventory intelligence for grocery retail.
+Reduces food waste, optimizes demand forecasting, and maximizes profit.
+"""
+
+from datetime import date
+
 import streamlit as st
-from sqlalchemy import text
+import streamlit.components.v1 as components
 
-from db.session import engine
+from dashboard import queries as Q
+from dashboard.styles import inject_css
+from dashboard.views import (
+    demand_forecast,
+    home,
+    inventory_health,
+    model_performance,
+    product_catalog,
+    recommendations,
+    store_overview,
+    waste_analytics,
+)
 
-st.set_page_config(page_title="ShelfLife AI", page_icon="🥬", layout="wide")
+st.set_page_config(
+    page_title="ShelfLife AI — Smart Inventory Intelligence",
+    page_icon="🥬",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
-PAGES = ["Demand Forecast", "Waste Risk", "Recommendations", "Model Performance"]
+inject_css()
+
+PAGES = {
+    "📊  Command Center": "home",
+    "🏪  Store Overview": "store",
+    "🛒  Product Catalog": "catalog",
+    "📦  Inventory Health": "inventory",
+    "📈  Demand Forecast": "demand",
+    "🗑️  Waste Analytics": "waste",
+    "💡  Recommendations": "recs",
+    "🤖  Model Performance": "model",
+}
 
 
-@st.cache_data(ttl=300)
-def query(sql: str, params: dict | None = None) -> pd.DataFrame:
-    with engine.connect() as conn:
-        return pd.read_sql(text(sql), conn, params=params)
+def _section_label(text: str):
+    """Tiny uppercase section label for sidebar groups."""
+    st.markdown(
+        f"<p style='font-size:0.6rem; text-transform:uppercase; letter-spacing:0.12em; "
+        f"color:#475569; font-weight:700; margin:0 0 6px 2px; padding:0;'>{text}</p>",
+        unsafe_allow_html=True,
+    )
 
 
 def sidebar():
-    st.sidebar.title("ShelfLife AI")
-    page = st.sidebar.radio("Navigate", PAGES)
-
-    stores = query("SELECT store_id, name FROM stores ORDER BY store_id")
-    store_id = st.sidebar.selectbox(
-        "Store",
-        stores["store_id"].tolist(),
-        format_func=lambda x: stores.loc[stores["store_id"] == x, "name"].values[0],
-    )
-    return page, store_id
-
-
-# ── Page 1: Demand Forecast ──────────────────────────────────
-
-
-def page_demand_forecast(store_id: int):
-    st.header("Demand Forecast")
-
-    categories = query("SELECT category_id, name FROM categories ORDER BY name")
-    cat_filter = st.selectbox("Category", ["All"] + categories["name"].tolist())
-
-    col1, col2 = st.columns(2)
-    with col1:
-        date_from = st.date_input("From", value=pd.Timestamp("2024-10-01"))
-    with col2:
-        date_to = st.date_input("To", value=pd.Timestamp("2024-12-31"))
-
-    sql = """
-        SELECT ds.date, ds.product_id, p.name as product_name, c.name as category,
-               ds.quantity_sold as actual, pr.predicted_demand as predicted,
-               pr.confidence_lower, pr.confidence_upper
-        FROM daily_sales ds
-        JOIN products p ON p.product_id = ds.product_id
-        JOIN categories c ON c.category_id = p.category_id
-        LEFT JOIN predictions pr ON pr.store_id = ds.store_id
-            AND pr.product_id = ds.product_id AND pr.date = ds.date
-        WHERE ds.store_id = :sid AND ds.date BETWEEN :d1 AND :d2
-        ORDER BY ds.date
-    """
-    df = query(sql, {"sid": store_id, "d1": str(date_from), "d2": str(date_to)})
-
-    if df.empty:
-        st.info("No data for selected filters. Run `uv run python -m scripts.run_daily_forecast` to generate predictions.")
-        return
-
-    if cat_filter != "All":
-        df = df[df["category"] == cat_filter]
-
-    # KPI cards
-    if "predicted" in df.columns and df["predicted"].notna().any():
-        matched = df.dropna(subset=["predicted", "actual"])
-        if not matched.empty:
-            mape_val = (abs(matched["predicted"] - matched["actual"]) / matched["actual"].clip(lower=1)).mean()
-            c1, c2, c3 = st.columns(3)
-            c1.metric("MAPE", f"{mape_val:.1%}")
-            c2.metric("Predictions", f"{len(matched):,}")
-            c3.metric("Products", f"{df['product_id'].nunique()}")
-
-    # Aggregate by date
-    daily = (
-        df.groupby("date")
-        .agg(
-            actual=("actual", "sum"),
-            predicted=("predicted", "sum"),
-        )
-        .reset_index()
-    )
-
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=daily["date"], y=daily["actual"], name="Actual", line=dict(color="#2563eb")))
-    if daily["predicted"].notna().any():
-        fig.add_trace(
-            go.Scatter(
-                x=daily["date"],
-                y=daily["predicted"],
-                name="Predicted",
-                line=dict(color="#f97316", dash="dash"),
+    with st.sidebar:
+        # ── Store selector at the very top — most important for a manager ──
+        stores = Q.get_stores()
+        if not stores.empty:
+            st.markdown(
+                "<div style='padding:16px 10px 4px 10px;'>"
+                "<p style='font-size:0.58rem; text-transform:uppercase; letter-spacing:0.12em; "
+                "color:#475569; font-weight:700; margin:0 0 6px 0;'>Active Store</p>"
+                "</div>",
+                unsafe_allow_html=True,
             )
-        )
-    fig.update_layout(
-        title="Daily Demand: Actual vs Predicted",
-        xaxis_title="Date",
-        yaxis_title="Units Sold",
-        height=400,
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Top products table
-    top = (
-        df.groupby(["product_id", "product_name"])
-        .agg(
-            total_sold=("actual", "sum"),
-            avg_daily=("actual", "mean"),
-        )
-        .sort_values("total_sold", ascending=False)
-        .head(10)
-        .reset_index()
-    )
-    st.subheader("Top 10 Products by Sales")
-    st.dataframe(top, use_container_width=True, hide_index=True)
-
-
-# ── Page 2: Waste Risk ───────────────────────────────────────
-
-
-def page_waste_risk(store_id: int):
-    st.header("Waste Risk Monitor")
-
-    sql = """
-        SELECT ds.date, ds.product_id, p.name as product_name, c.name as category,
-               ds.units_wasted, ds.quantity_sold,
-               i.days_until_expiry, i.quantity_on_hand
-        FROM daily_sales ds
-        JOIN products p ON p.product_id = ds.product_id
-        JOIN categories c ON c.category_id = p.category_id
-        LEFT JOIN inventory_snapshots i ON i.store_id = ds.store_id
-            AND i.product_id = ds.product_id AND i.date = ds.date
-        WHERE ds.store_id = :sid AND ds.date >= '2024-10-01'
-        ORDER BY ds.date
-    """
-    df = query(sql, {"sid": store_id})
-
-    if df.empty:
-        st.info("No waste data available.")
-        return
-
-    # KPI cards
-    total_wasted = df["units_wasted"].sum()
-    total_sold = df["quantity_sold"].sum()
-    waste_rate = total_wasted / max(total_sold, 1)
-    kg_wasted = total_wasted * 0.3
-
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Wasted", f"{total_wasted:,} units")
-    c2.metric("Waste Rate", f"{waste_rate:.1%}")
-    c3.metric("~Kg Wasted", f"{kg_wasted:,.0f}")
-    c4.metric("~Meals Lost", f"{int(kg_wasted * 2.5):,}")
-
-    # Waste by category
-    by_cat = df.groupby("category").agg(wasted=("units_wasted", "sum")).sort_values("wasted", ascending=False).reset_index()
-    fig = px.bar(
-        by_cat,
-        x="category",
-        y="wasted",
-        title="Waste by Category",
-        color="wasted",
-        color_continuous_scale="Reds",
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-    # Waste trend
-    daily_waste = df.groupby("date").agg(wasted=("units_wasted", "sum")).reset_index()
-    fig2 = px.area(
-        daily_waste,
-        x="date",
-        y="wasted",
-        title="Daily Waste Trend",
-        color_discrete_sequence=["#ef4444"],
-    )
-    st.plotly_chart(fig2, use_container_width=True)
-
-    # At-risk items (low days to expiry, high stock)
-    latest = df.loc[df["date"] == df["date"].max()].copy()
-    if "days_until_expiry" in latest.columns:
-        at_risk = latest[latest["days_until_expiry"].notna() & (latest["days_until_expiry"] <= 3)]
-        if not at_risk.empty:
-            st.subheader("At-Risk Items (3 days to expiry)")
-            st.dataframe(
-                at_risk[["product_name", "category", "quantity_on_hand", "days_until_expiry"]].sort_values("days_until_expiry"),
-                use_container_width=True,
-                hide_index=True,
+            store_id = st.selectbox(
+                "store",
+                stores["store_id"].tolist(),
+                format_func=lambda x: stores.loc[stores["store_id"] == x, "name"].values[0],
+                label_visibility="collapsed",
             )
+        else:
+            store_id = 1
+
+        st.markdown(
+            "<div style='margin:6px 12px 10px; height:1px; "
+            "background:linear-gradient(90deg, #10B981, rgba(51,65,85,0.2));'></div>",
+            unsafe_allow_html=True,
+        )
+
+        # ── Navigation ──
+        _section_label("Menu")
+        page = st.radio("nav", list(PAGES.keys()), label_visibility="collapsed")
+
+        st.divider()
+
+        # ── Display Settings ──
+        _section_label("Display")
+        dark_charts = st.toggle("🌙 Dark Charts", value=True, key="dark_charts")
+        st.session_state["chart_dark"] = dark_charts
+
+        # ── Footer ──
+        st.markdown(
+            "<div style='"
+            "margin-top:24px; padding:14px 12px 10px 12px; "
+            "border-top:1px solid rgba(51,65,85,0.35); text-align:center;"
+            "'>"
+            "<div style='font-size:0.6rem; color:#475569; line-height:1.9; letter-spacing:0.02em;'>"
+            "<span style='color:#10B981;'>XGBoost</span> · "
+            "<span style='color:#3B82F6;'>LightGBM</span> · "
+            "<span style='color:#F59E0B;'>MLflow</span><br>"
+            "FastAPI · Streamlit · PostgreSQL<br>"
+            f"<span style='color:#334155;'>v1.0 · {date.today().strftime('%b %Y')}</span>"
+            "</div></div>",
+            unsafe_allow_html=True,
+        )
+
+    return PAGES[page], store_id
 
 
-# ── Page 3: Recommendations ──────────────────────────────────
+def header_bar(store_id: int):
+    """Branded top header bar."""
+    stores = Q.get_stores()
+    store_name = "All Stores"
+    if not stores.empty and store_id in stores["store_id"].values:
+        store_name = stores.loc[stores["store_id"] == store_id, "name"].values[0]
+
+    today_str = date.today().strftime("%b %d, %Y")
+
+    html = (
+        "<div style='"
+        "background:linear-gradient(135deg, #0B1120 0%, #162032 50%, #0F172A 100%);"
+        "border:1px solid rgba(51,65,85,0.35); border-radius:14px;"
+        "padding:20px 30px; margin-bottom:22px;"
+        "display:flex; justify-content:space-between; align-items:center;"
+        "flex-wrap:wrap; gap:16px;"
+        "'>"
+        # left — logo + tagline
+        "<div style='display:flex; align-items:center; gap:16px;'>"
+        "<div style='"
+        "width:48px; height:48px; border-radius:12px;"
+        "background:linear-gradient(135deg, #10B981, #059669);"
+        "display:flex; align-items:center; justify-content:center;"
+        "font-size:1.6rem; flex-shrink:0;"
+        "box-shadow:0 3px 10px rgba(16,185,129,0.3);"
+        "'>🥬</div>"
+        "<div>"
+        "<div style='font-size:1.55rem; font-weight:800; color:#F8FAFC; letter-spacing:-0.02em; line-height:1.15;'>"
+        "ShelfLife <span style='color:#10B981;'>AI</span>"
+        "</div>"
+        "<div style='font-size:0.82rem; color:#64748B; margin-top:3px;'>"
+        "AI-powered demand forecasting &amp; waste prevention"
+        "</div>"
+        "</div></div>"
+        # right — context pills
+        "<div style='display:flex; gap:12px; align-items:center; flex-wrap:wrap;'>"
+        "<div style='"
+        "background:rgba(30,41,59,0.6); border:1px solid rgba(51,65,85,0.5);"
+        "border-radius:8px; padding:7px 16px; text-align:center;"
+        "'>"
+        "<div style='font-size:0.55rem; text-transform:uppercase; letter-spacing:0.1em; color:#475569; margin-bottom:2px;'>Store</div>"
+        f"<div style='font-size:0.88rem; font-weight:600; color:#10B981;'>{store_name}</div>"
+        "</div>"
+        "<div style='"
+        "background:rgba(30,41,59,0.6); border:1px solid rgba(51,65,85,0.5);"
+        "border-radius:8px; padding:7px 16px; text-align:center;"
+        "'>"
+        "<div style='font-size:0.55rem; text-transform:uppercase; letter-spacing:0.1em; color:#475569; margin-bottom:2px;'>Date</div>"
+        f"<div style='font-size:0.88rem; font-weight:600; color:#E2E8F0;'>{today_str}</div>"
+        "</div>"
+        "<div style='"
+        "background:linear-gradient(135deg, #10B981, #059669);"
+        "color:white; padding:5px 14px; border-radius:20px;"
+        "font-size:0.62rem; font-weight:700; letter-spacing:0.06em;"
+        "text-transform:uppercase; box-shadow:0 2px 6px rgba(16,185,129,0.3);"
+        "display:flex; align-items:center; gap:5px;"
+        "'>"
+        "<span style='display:inline-block; width:6px; height:6px; border-radius:50%; background:white;'></span>"
+        "Live</div>"
+        "</div></div>"
+    )
+
+    st.markdown(html, unsafe_allow_html=True)
 
 
-def page_recommendations(store_id: int):
-    st.header("Recommendations")
-
-    sql = """
-        SELECT r.date, r.product_id, p.name as product_name,
-               r.action_type, r.markdown_pct,
-               r.expected_waste_reduction, r.expected_cost_saved_usd,
-               r.status, r.actual_waste_reduction, r.actual_cost_saved_usd,
-               r.created_at
-        FROM recommendations_log r
-        JOIN products p ON p.product_id = r.product_id
-        WHERE r.store_id = :sid
-        ORDER BY r.created_at DESC
-        LIMIT 100
-    """
-    df = query(sql, {"sid": store_id})
-
-    if df.empty:
-        st.info("No recommendations generated yet. Use the `/recommend` API endpoint to generate some.")
-        return
-
-    # KPIs
-    total = len(df)
-    accepted = len(df[df["status"] == "accepted"])
-    expected_savings = df["expected_cost_saved_usd"].sum()
-    actual_savings = df["actual_cost_saved_usd"].sum() if "actual_cost_saved_usd" in df.columns else 0
-
-    c1, c2, c3, c4 = st.columns(4)
-    c1.metric("Total Recs", total)
-    c2.metric("Accepted", f"{accepted} ({accepted / max(total, 1):.0%})")
-    c3.metric("Expected Savings", f"${expected_savings:,.2f}")
-    c4.metric("Actual Savings", f"${actual_savings:,.2f}")
-
-    # By action type
-    by_action = df.groupby("action_type").size().reset_index(name="count")
-    fig = px.pie(by_action, names="action_type", values="count", title="Recommendations by Action Type")
-    st.plotly_chart(fig, use_container_width=True)
-
-    st.subheader("Recent Recommendations")
-    st.dataframe(df, use_container_width=True, hide_index=True)
+def scroll_to_top():
+    """Scroll the main content area back to the top on every navigation change."""
+    components.html(
+        "<script>"
+        "const el = window.parent.document.querySelector('section[data-testid=\"stMain\"]');"
+        "if (el) el.scrollTo({ top: 0, behavior: 'instant' });"
+        "</script>",
+        height=0,
+    )
 
 
-# ── Page 4: Model Performance ────────────────────────────────
-
-
-def page_model_performance(store_id: int):
-    st.header("Model Performance & MLOps")
-
-    # Alerts
-    alerts_df = query("""
-        SELECT alert_type, severity, message, created_at
-        FROM alerts ORDER BY created_at DESC LIMIT 20
-    """)
-
-    if not alerts_df.empty:
-        st.subheader("Recent Alerts")
-        st.dataframe(alerts_df, use_container_width=True, hide_index=True)
-
-    # Feature importance (from feature store stats)
-    st.subheader("Feature Store Stats")
-    feat_stats = query("""
-        SELECT COUNT(*) as total_rows,
-               COUNT(DISTINCT product_id) as products,
-               COUNT(DISTINCT store_id) as stores,
-               MIN(date) as first_date,
-               MAX(date) as last_date
-        FROM feature_store
-    """)
-    if not feat_stats.empty:
-        row = feat_stats.iloc[0]
-        c1, c2, c3, c4 = st.columns(4)
-        c1.metric("Feature Rows", f"{row['total_rows']:,}")
-        c2.metric("Products", row["products"])
-        c3.metric("Stores", row["stores"])
-        c4.metric("Date Range", f"{row['first_date']} to {row['last_date']}")
-
-    # Drift detection status
-    st.subheader("Drift Detection Status")
-    drift_alerts = query("""
-        SELECT message, metadata_json, created_at
-        FROM alerts WHERE alert_type = 'data_drift'
-        ORDER BY created_at DESC LIMIT 5
-    """)
-    if drift_alerts.empty:
-        st.success("No data drift detected. All features are stable.")
-    else:
-        st.warning(f"{len(drift_alerts)} drift alerts found")
-        st.dataframe(drift_alerts, use_container_width=True, hide_index=True)
-
-    # Model promotion history
-    st.subheader("Model Promotion History")
-    promo_df = query("""
-        SELECT message, metadata_json, created_at
-        FROM alerts WHERE alert_type = 'model_promoted'
-        ORDER BY created_at DESC LIMIT 10
-    """)
-    if promo_df.empty:
-        st.info("No model promotions recorded yet.")
-    else:
-        st.dataframe(promo_df, use_container_width=True, hide_index=True)
-
-
-# ── Main ─────────────────────────────────────────────────────
+def _render_page(page_key: str, store_id: int):
+    if page_key == "home":
+        home.render(store_id)
+    elif page_key == "store":
+        store_overview.render(store_id)
+    elif page_key == "catalog":
+        product_catalog.render(store_id)
+    elif page_key == "inventory":
+        inventory_health.render(store_id)
+    elif page_key == "demand":
+        demand_forecast.render(store_id)
+    elif page_key == "waste":
+        waste_analytics.render(store_id)
+    elif page_key == "recs":
+        recommendations.render(store_id)
+    elif page_key == "model":
+        model_performance.render(store_id)
 
 
 def main():
-    page, store_id = sidebar()
-
-    if page == "Demand Forecast":
-        page_demand_forecast(store_id)
-    elif page == "Waste Risk":
-        page_waste_risk(store_id)
-    elif page == "Recommendations":
-        page_recommendations(store_id)
-    elif page == "Model Performance":
-        page_model_performance(store_id)
+    page_key, store_id = sidebar()
+    scroll_to_top()
+    header_bar(store_id)
+    _render_page(page_key, store_id)
 
 
 if __name__ == "__main__":

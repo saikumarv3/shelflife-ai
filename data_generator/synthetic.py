@@ -20,19 +20,14 @@ from config.settings import settings
 RNG = np.random.default_rng(settings.random_seed)
 
 # ── Holiday calendar ──────────────────────────────────────────
-US_HOLIDAYS_2024 = {
-    date(2024, 1, 1),  # New Year's Day
-    date(2024, 1, 15),  # MLK Day
-    date(2024, 2, 14),  # Valentine's Day
-    date(2024, 3, 17),  # St Patrick's Day
-    date(2024, 5, 27),  # Memorial Day
-    date(2024, 7, 4),  # Independence Day
-    date(2024, 9, 2),  # Labor Day
-    date(2024, 10, 31),  # Halloween
-    date(2024, 11, 28),  # Thanksgiving
-    date(2024, 12, 24),  # Christmas Eve
-    date(2024, 12, 25),  # Christmas Day
-    date(2024, 12, 31),  # New Year's Eve
+US_HOLIDAYS = {
+    date(2025, 12, 24),  # Christmas Eve
+    date(2025, 12, 25),  # Christmas Day
+    date(2025, 12, 31),  # New Year's Eve
+    date(2026, 1, 1),  # New Year's Day
+    date(2026, 1, 19),  # MLK Day
+    date(2026, 2, 14),  # Valentine's Day
+    date(2026, 2, 16),  # Presidents' Day
 }
 
 
@@ -343,7 +338,7 @@ def generate_all() -> SyntheticData:
             for day_idx, d in enumerate(dates):
                 day_of_week = d.weekday()
                 day_of_year = d.timetuple().tm_yday
-                is_holiday = d in US_HOLIDAYS_2024
+                is_holiday = d in US_HOLIDAYS
                 is_promo = day_idx in promo_days
                 promo_discount = round(RNG.uniform(0.10, 0.35), 2) if is_promo else 0.0
 

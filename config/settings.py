@@ -54,8 +54,8 @@ class Settings(BaseSettings):
     num_stores: int = 3
     num_products: int = 50
     num_categories: int = 8
-    data_start_date: str = "2024-01-01"
-    data_end_date: str = "2024-12-31"
+    data_start_date: str = "2025-12-15"
+    data_end_date: str = "2026-03-07"
     random_seed: int = 42
 
     # ── Connection pooling ────────────────────────────────────
