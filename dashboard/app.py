@@ -7,7 +7,6 @@ Reduces food waste, optimizes demand forecasting, and maximizes profit.
 from datetime import date
 
 import streamlit as st
-import streamlit.components.v1 as components
 
 from dashboard import queries as Q
 from dashboard.styles import inject_css
@@ -175,27 +174,24 @@ def header_bar(store_id: int):
 
 
 def scroll_to_top():
-    """Scroll window to top on every navigation change.
-
-    In Streamlit wide layout the sidebar is position:fixed and the whole
-    browser window scrolls — so we target window / body / documentElement,
-    not an inner div.  We retry 3 times to catch async content renders.
-    """
-    components.html(
-        """<script>
-        (function () {
-            function go() {
-                try { window.parent.scrollTo(0, 0); } catch (e) {}
-                try { window.parent.document.documentElement.scrollTop = 0; } catch (e) {}
-                try { window.parent.document.body.scrollTop = 0; } catch (e) {}
-            }
-            go();
-            setTimeout(go, 120);
-            setTimeout(go, 400);
-        })();
-        </script>""",
-        height=0,
+    """Scroll to top using an anchor element at the start of main content."""
+    st.markdown("<div id='shelflife-top'></div>", unsafe_allow_html=True)
+    js = (
+        "<script>"
+        "var attempts = 0;"
+        "function scrollUp() {"
+        "  var el = document.getElementById('shelflife-top');"
+        "  if (el) { el.scrollIntoView({behavior: 'instant', block: 'start'}); return; }"
+        "  var main = document.querySelector('section[data-testid=\"stMain\"]');"
+        "  if (main) { main.scrollTop = 0; }"
+        "  window.scrollTo(0,0);"
+        "  document.documentElement.scrollTop = 0;"
+        "  if (++attempts < 5) setTimeout(scrollUp, 100);"
+        "}"
+        "scrollUp();"
+        "</script>"
     )
+    st.markdown(js, unsafe_allow_html=True)
 
 
 def _render_page(page_key: str, store_id: int):
