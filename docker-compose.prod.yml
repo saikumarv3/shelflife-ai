@@ -133,6 +133,25 @@ services:
           memory: 400M
           cpus: "1.0"
 
+  # ── Landing page (chotulab.com) ────────────────────────────────
+  landing:
+    image: nginx:alpine
+    restart: always
+    ports:
+      - "8080:80"
+    volumes:
+      - ./chotulab-hub:/usr/share/nginx/html:ro
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost/"]
+      interval: 15s
+      retries: 3
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          memory: 64M
+          cpus: "0.25"
+
 volumes:
   pgdata:
   redisdata:
