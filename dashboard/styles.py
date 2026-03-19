@@ -67,6 +67,14 @@ CUSTOM_CSS = """
 /* ─── Root ──────────────────────────────── */
 .stApp { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 
+/* ─── Remove default top gap above header ── */
+.block-container {
+    padding-top: 1rem !important;
+}
+section[data-testid="stMain"] > div:first-child {
+    padding-top: 0 !important;
+}
+
 /* ─── Sidebar ───────────────────────────── */
 section[data-testid="stSidebar"] {
     background: linear-gradient(180deg, #0B1120 0%, #0F172A 40%, #162032 100%) !important;
