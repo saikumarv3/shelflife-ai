@@ -177,7 +177,7 @@ jobs:
           TOKEN:   ${{ secrets.COOLIFY_TOKEN }}
         run: |
           if [ -n "$WEBHOOK" ]; then
-            curl --silent --show-error --fail -X POST "$WEBHOOK" \
+            curl --silent --show-error --fail --insecure -X POST "$WEBHOOK" \
               -H "Authorization: Bearer $TOKEN"
             echo "✓ API deploy triggered"
           else
@@ -190,7 +190,7 @@ jobs:
           TOKEN:   ${{ secrets.COOLIFY_TOKEN }}
         run: |
           if [ -n "$WEBHOOK" ]; then
-            curl --silent --show-error --fail -X POST "$WEBHOOK" \
+            curl --silent --show-error --fail --insecure -X POST "$WEBHOOK" \
               -H "Authorization: Bearer $TOKEN"
             echo "✓ Dashboard deploy triggered"
           else
@@ -203,7 +203,7 @@ jobs:
           TOKEN:   ${{ secrets.COOLIFY_TOKEN }}
         run: |
           if [ -n "$WEBHOOK" ]; then
-            curl --silent --show-error --fail -X POST "$WEBHOOK" \
+            curl --silent --show-error --fail --insecure -X POST "$WEBHOOK" \
               -H "Authorization: Bearer $TOKEN"
             echo "✓ Landing page deploy triggered"
           else
