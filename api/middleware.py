@@ -7,6 +7,7 @@ import logging
 import time
 import uuid
 from collections import defaultdict
+from typing import Optional
 
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
@@ -81,6 +82,22 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 PREDICTION_PATHS = {"/predict/demand", "/predict/batch", "/predict/waste-risk", "/recommend"}
 
 
+def _real_ip(request: Request) -> Optional[str]:
+    """Return the real client IP, respecting X-Forwarded-For set by Nginx/Coolify.
+
+    X-Forwarded-For can be a comma-separated chain of IPs added by each proxy:
+      "client, proxy1, proxy2"
+    The leftmost value is the original caller.
+    """
+    xff = request.headers.get("X-Forwarded-For")
+    if xff:
+        return xff.split(",")[0].strip()
+    real_ip = request.headers.get("X-Real-IP")
+    if real_ip:
+        return real_ip.strip()
+    return request.client.host if request.client else None
+
+
 class RequestLoggingMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next) -> Response:
         from monitoring.metrics import PREDICTION_LATENCY, PREDICTION_REQUESTS
@@ -104,7 +121,7 @@ class RequestLoggingMiddleware(BaseHTTPMiddleware):
             "path": path,
             "status_code": response.status_code,
             "latency_ms": round(latency_ms, 1),
-            "client_ip": request.client.host if request.client else None,
+            "client_ip": _real_ip(request),
         }
         logger.info(json.dumps(log_data))
         return response
