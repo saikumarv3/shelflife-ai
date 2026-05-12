@@ -211,7 +211,8 @@ shelflife-ai/
 ├── dashboard/              # Streamlit 4-page dashboard
 ├── data_generator/         # Synthetic data generation
 ├── db/                     # SQLAlchemy models + session + seed
-├── docs/                   # Architecture & design documents
+├── docs_committed/         # Public docs (business guide + technical deep-dive)
+├── docs_diagrams/          # Mermaid architecture & flow diagrams
 ├── features/               # Feature engineering + feature store
 ├── mlops/                  # Train pipeline, registry, drift, retrain
 ├── models/                 # Demand forecaster, waste risk, evaluation

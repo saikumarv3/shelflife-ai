@@ -12,8 +12,10 @@ artifacts/*
 !artifacts/train_metrics.json
 *.pkl
 
-# Confidential docs (kept local only)
+# Confidential / internal-only docs (kept local only; mirrored separately)
 docs/
+docs_internal/
+docs_private/
 
 # Environment
 .env
