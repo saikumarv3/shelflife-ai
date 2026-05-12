@@ -152,8 +152,56 @@ services:
           memory: 64M
           cpus: "0.25"
 
+  # ── Umami Analytics ────────────────────────────────────────────
+  # Self-hosted privacy-friendly analytics: countries, cities, pages,
+  # referrers, devices — no cookies, no GDPR headaches.
+  # Dashboard: https://analytics.chotulab.com  (configure in Coolify)
+  umami-db:
+    image: postgres:16-alpine
+    restart: always
+    environment:
+      POSTGRES_DB: umami
+      POSTGRES_USER: umami
+      POSTGRES_PASSWORD: ${UMAMI_DB_PASSWORD}
+    volumes:
+      - umamidata:/var/lib/postgresql/data
+    healthcheck:
+      test: pg_isready -U umami
+      interval: 10s
+      retries: 5
+      start_period: 15s
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+          cpus: "0.25"
+
+  umami:
+    image: ghcr.io/umami-software/umami:postgresql-latest
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: postgresql://umami:${UMAMI_DB_PASSWORD}@umami-db:5432/umami
+      DATABASE_TYPE: postgresql
+      APP_SECRET: ${UMAMI_APP_SECRET}
+    depends_on:
+      umami-db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/api/heartbeat || exit 1"]
+      interval: 15s
+      retries: 5
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.5"
+
 volumes:
   pgdata:
   redisdata:
   mlflow_data:
   model_artifacts:
+  umamidata:
