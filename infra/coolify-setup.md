@@ -342,6 +342,75 @@ Add this line (runs backup at 3 AM every day):
 
 ---
 
+## Domain Setup — chotulab.com + www.chotulab.com
+
+> Symptom: `www.chotulab.com` loads but `chotulab.com` shows "no available server."
+> Root cause: either the bare-domain DNS A record is missing, or Coolify only has
+> `www.chotulab.com` configured as a domain for the landing service.
+
+### Step A — GoDaddy DNS (do this first)
+
+Log in to GoDaddy → DNS → chotulab.com → Manage DNS
+
+| Type  | Name | Value                 | TTL  |
+|-------|------|-----------------------|------|
+| A     | @    | YOUR_HETZNER_IP       | 600  |
+| CNAME | www  | chotulab.com          | 1 hr |
+
+> The `@` A record is what makes the bare domain resolve.
+> After saving, DNS propagation takes 1–10 minutes (sometimes up to 1 hr).
+> Verify with: `nslookup chotulab.com` — should return your Hetzner IP.
+
+### Step B — Coolify: add both domains to the landing service
+
+```
+Coolify → Project: shelflife-ai → landing service → Settings → Domains
+
+Add:
+  chotulab.com
+  www.chotulab.com
+
+Click: Save → Redeploy (or Restart Proxy)
+```
+
+> Coolify/Traefik will request two separate SSL certificates (one per domain).
+> Both will redirect to HTTPS automatically.
+
+### Step C — How the redirect works (code side)
+
+The file `chotulab-hub/nginx.conf` is mounted into the Nginx container.
+It does two things:
+
+1. Any request arriving with `Host: chotulab.com` → 301 permanent redirect to `www.chotulab.com`
+2. `www.chotulab.com` (and any unknown host) → serves `index.html`
+
+So the full request chain is:
+```
+User visits chotulab.com
+  → Traefik (port 443, TLS) → routes to landing container
+    → Nginx sees Host: chotulab.com → 301 → www.chotulab.com
+      → Traefik routes to landing container again
+        → Nginx serves index.html  ✓
+```
+
+### Step D — Quick verification after redeploy
+
+```bash
+# 1. DNS resolves for both
+nslookup chotulab.com      # → Hetzner IP
+nslookup www.chotulab.com  # → Hetzner IP
+
+# 2. Root redirects to www
+curl -I https://chotulab.com
+# Expected: HTTP/2 301  location: https://www.chotulab.com/
+
+# 3. www serves 200
+curl -I https://www.chotulab.com
+# Expected: HTTP/2 200
+```
+
+---
+
 ## Troubleshooting
 
 **API returns 503 "Model not available"**
@@ -362,3 +431,8 @@ Add this line (runs backup at 3 AM every day):
 → `df -h` on server.
 → `docker system prune -af` cleans unused images.
 → Check /var/backups/shelflife — reduce BACKUP_RETENTION_DAYS if needed.
+
+**chotulab.com shows "no available server" but www works**
+→ Step A: make sure GoDaddy has an A record for `@` pointing to Hetzner IP.
+→ Step B: make sure Coolify has BOTH `chotulab.com` AND `www.chotulab.com` as domains on the landing service.
+→ Step D: run the curl checks above to pinpoint where it breaks.
