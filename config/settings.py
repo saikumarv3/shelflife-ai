@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     mlflow_tracking_uri: str = "sqlite:////app/artifacts/mlflow.db"
 
     # ── API ───────────────────────────────────────────────────
+    # NOTE: this default is a non-secret placeholder used only for local
+    # development. ALWAYS override `API_KEY` via .env / Coolify env vars
+    # in any non-local environment. Do not ship this value to production.
     api_key: str = "sk_shelflife_dev_abc123"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
