@@ -5,8 +5,10 @@ name: ShelfLife AI — Deploy to Production
 #
 # Required GitHub Secrets (Settings → Secrets → Actions):
 #   GHCR_TOKEN              — GitHub PAT (scope: write:packages)
+#   COOLIFY_TOKEN           — Coolify API token (Profile → Keys & Tokens)
 #   COOLIFY_API_WEBHOOK     — Coolify deploy webhook for the API service
 #   COOLIFY_DASH_WEBHOOK    — Coolify deploy webhook for the Dashboard service
+#   COOLIFY_LANDING_WEBHOOK — Coolify deploy webhook for the ChotuLab landing page
 
 on:
   push:
@@ -171,26 +173,41 @@ jobs:
     steps:
       - name: Trigger Coolify — API service
         env:
-          COOLIFY_API_WEBHOOK: ${{ secrets.COOLIFY_API_WEBHOOK }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          WEBHOOK: ${{ secrets.COOLIFY_API_WEBHOOK }}
+          TOKEN:   ${{ secrets.COOLIFY_TOKEN }}
         run: |
-          if [ -n "$COOLIFY_API_WEBHOOK" ]; then
-            curl --silent --show-error --fail -X POST "$COOLIFY_API_WEBHOOK" \
-              -H "Authorization: Bearer $COOLIFY_TOKEN"
+          if [ -n "$WEBHOOK" ]; then
+            curl --silent --show-error --fail -X POST "$WEBHOOK" \
+              -H "Authorization: Bearer $TOKEN"
+            echo "✓ API deploy triggered"
           else
             echo "COOLIFY_API_WEBHOOK not set — skipping"
           fi
 
       - name: Trigger Coolify — Dashboard service
         env:
-          COOLIFY_DASH_WEBHOOK: ${{ secrets.COOLIFY_DASH_WEBHOOK }}
-          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          WEBHOOK: ${{ secrets.COOLIFY_DASH_WEBHOOK }}
+          TOKEN:   ${{ secrets.COOLIFY_TOKEN }}
         run: |
-          if [ -n "$COOLIFY_DASH_WEBHOOK" ]; then
-            curl --silent --show-error --fail -X POST "$COOLIFY_DASH_WEBHOOK" \
-              -H "Authorization: Bearer $COOLIFY_TOKEN"
+          if [ -n "$WEBHOOK" ]; then
+            curl --silent --show-error --fail -X POST "$WEBHOOK" \
+              -H "Authorization: Bearer $TOKEN"
+            echo "✓ Dashboard deploy triggered"
           else
             echo "COOLIFY_DASH_WEBHOOK not set — skipping"
+          fi
+
+      - name: Trigger Coolify — Landing page (www.chotulab.com)
+        env:
+          WEBHOOK: ${{ secrets.COOLIFY_LANDING_WEBHOOK }}
+          TOKEN:   ${{ secrets.COOLIFY_TOKEN }}
+        run: |
+          if [ -n "$WEBHOOK" ]; then
+            curl --silent --show-error --fail -X POST "$WEBHOOK" \
+              -H "Authorization: Bearer $TOKEN"
+            echo "✓ Landing page deploy triggered"
+          else
+            echo "COOLIFY_LANDING_WEBHOOK not set — skipping"
           fi
 
       - name: Deployment summary
