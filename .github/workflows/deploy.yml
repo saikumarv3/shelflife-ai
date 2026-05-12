@@ -177,9 +177,9 @@ jobs:
           TOKEN:   ${{ secrets.COOLIFY_TOKEN }}
         run: |
           if [ -n "$WEBHOOK" ]; then
-            curl --silent --show-error --fail --insecure -X POST "$WEBHOOK" \
-              -H "Authorization: Bearer $TOKEN"
-            echo "✓ API deploy triggered"
+            HTTP=$(curl --silent --insecure --output /dev/null --write-out "%{http_code}" \
+              -X POST "$WEBHOOK" -H "Authorization: Bearer $TOKEN")
+            echo "✓ API webhook fired — HTTP $HTTP"
           else
             echo "COOLIFY_API_WEBHOOK not set — skipping"
           fi
@@ -190,9 +190,9 @@ jobs:
           TOKEN:   ${{ secrets.COOLIFY_TOKEN }}
         run: |
           if [ -n "$WEBHOOK" ]; then
-            curl --silent --show-error --fail --insecure -X POST "$WEBHOOK" \
-              -H "Authorization: Bearer $TOKEN"
-            echo "✓ Dashboard deploy triggered"
+            HTTP=$(curl --silent --insecure --output /dev/null --write-out "%{http_code}" \
+              -X POST "$WEBHOOK" -H "Authorization: Bearer $TOKEN")
+            echo "✓ Dashboard webhook fired — HTTP $HTTP"
           else
             echo "COOLIFY_DASH_WEBHOOK not set — skipping"
           fi
@@ -203,9 +203,9 @@ jobs:
           TOKEN:   ${{ secrets.COOLIFY_TOKEN }}
         run: |
           if [ -n "$WEBHOOK" ]; then
-            curl --silent --show-error --fail --insecure -X POST "$WEBHOOK" \
-              -H "Authorization: Bearer $TOKEN"
-            echo "✓ Landing page deploy triggered"
+            HTTP=$(curl --silent --insecure --output /dev/null --write-out "%{http_code}" \
+              -X POST "$WEBHOOK" -H "Authorization: Bearer $TOKEN")
+            echo "✓ Landing webhook fired — HTTP $HTTP"
           else
             echo "COOLIFY_LANDING_WEBHOOK not set — skipping"
           fi
