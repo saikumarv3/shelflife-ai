@@ -272,4 +272,3 @@ class SiteVisit(Base):
     path = Column(String(256))
     referrer = Column(String(256))
     payload_json = Column(JSONB)
-
