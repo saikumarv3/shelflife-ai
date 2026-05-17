@@ -36,9 +36,10 @@ class VisitPayload(BaseModel):
 @router.post("/track-visit", status_code=201)
 def track_visit(payload: VisitPayload, request: Request, db: Session = Depends(get_db)):
     xff = request.headers.get("X-Forwarded-For")
-    real_ip = xff.split(",")[0].strip() if xff else (
-        request.headers.get("X-Real-IP", "").strip()
-        or (request.client.host if request.client else None)
+    real_ip = (
+        xff.split(",")[0].strip()
+        if xff
+        else (request.headers.get("X-Real-IP", "").strip() or (request.client.host if request.client else None))
     )
 
     visit = SiteVisit(
