@@ -384,6 +384,111 @@
     .footer-links a { font-size: 0.82rem; color: var(--muted2); text-decoration: none; transition: color 0.2s; }
     .footer-links a:hover { color: var(--green); }
 
+    /* ── ABOUT ── */
+    #about { padding: 80px 0; }
+    .about-grid {
+      display: grid; grid-template-columns: 1fr 1.3fr;
+      gap: 56px; align-items: start;
+    }
+    @media (max-width: 700px) { .about-grid { grid-template-columns: 1fr; } }
+
+    .about-profile {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 32px;
+      position: relative;
+      overflow: hidden;
+    }
+    .about-profile::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 3px;
+      background: linear-gradient(90deg, var(--green), var(--cyan), var(--indigo));
+    }
+    .about-name {
+      font-size: 1.5rem; font-weight: 800;
+      letter-spacing: -0.02em; margin-bottom: 4px;
+    }
+    .about-title {
+      font-size: 0.95rem; color: var(--green);
+      font-weight: 600; margin-bottom: 4px;
+    }
+    .about-company {
+      font-size: 0.85rem; color: var(--muted2);
+      margin-bottom: 16px;
+    }
+    .about-summary {
+      font-size: 0.88rem; color: var(--muted2);
+      line-height: 1.7; margin-bottom: 20px;
+    }
+    .about-certs {
+      display: flex; flex-wrap: wrap; gap: 6px;
+      margin-bottom: 20px;
+    }
+    .cert-tag {
+      font-size: 0.68rem; font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      padding: 4px 10px; border-radius: 4px;
+      background: rgba(99,102,241,0.1);
+      color: #a5b4fc; letter-spacing: 0.02em;
+      border: 1px solid rgba(99,102,241,0.2);
+    }
+    .about-links {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    .about-link {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-size: 0.82rem; font-weight: 600;
+      color: var(--text); text-decoration: none;
+      padding: 8px 16px; border-radius: 8px;
+      border: 1px solid var(--border);
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .about-link:hover {
+      border-color: rgba(16,185,129,0.4);
+      background: rgba(16,185,129,0.06);
+    }
+
+    .about-highlights { display: flex; flex-direction: column; gap: 14px; }
+    .highlight-card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 20px 22px;
+      display: flex; gap: 16px; align-items: flex-start;
+      transition: border-color 0.2s;
+    }
+    .highlight-card:hover { border-color: rgba(16,185,129,0.25); }
+    .highlight-icon {
+      width: 40px; height: 40px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px; flex-shrink: 0;
+    }
+    .highlight-title {
+      font-weight: 700; font-size: 0.9rem; margin-bottom: 4px;
+      color: var(--text);
+    }
+    .highlight-desc {
+      font-size: 0.82rem; color: var(--muted2); line-height: 1.6;
+    }
+    .highlight-desc strong {
+      color: var(--green); font-weight: 700;
+    }
+    .about-edu {
+      margin-top: 8px; padding-top: 16px;
+      border-top: 1px solid var(--border);
+    }
+    .edu-row {
+      display: flex; align-items: baseline; gap: 8px;
+      margin-bottom: 6px;
+    }
+    .edu-degree {
+      font-size: 0.82rem; font-weight: 600; color: var(--text);
+    }
+    .edu-school {
+      font-size: 0.78rem; color: var(--muted);
+    }
+
     /* ── ANIMATIONS ── */
     .fade-up {
       opacity: 0; transform: translateY(24px);
@@ -422,6 +527,7 @@
       ChotuLab
     </a>
     <div class="nav-links">
+      <a href="#about">About</a>
       <a href="#projects">Projects</a>
       <a href="#mission">Mission</a>
       <a href="https://github.com/saikumarv3" target="_blank">GitHub</a>
@@ -484,13 +590,105 @@
   </div>
 </section>
 
+<!-- ABOUT -->
+<section id="about">
+  <div class="container">
+    <div class="section-header">
+      <div class="section-tag">About</div>
+      <h2>The Engineer Behind <span class="gradient-text">ChotuLab</span></h2>
+    </div>
+    <div class="about-grid">
+      <div class="about-profile">
+        <div class="about-name">Sai Kumar Vurukonda</div>
+        <div class="about-title">Senior ML Engineer</div>
+        <div class="about-company">Fidelity Investments · 7 years experience</div>
+        <div class="about-summary">
+          I build production AI systems at enterprise scale — fraud detection on graph neural networks over 50M+ node graphs, 
+          multimodal document intelligence processing 50K+ financial documents daily, recommendation engines fusing GraphSAGE 
+          with Transformer session modeling, and real-time audio ML pipelines handling 8M+ acoustic events daily. 
+          End-to-end ownership from distributed training through GPU-accelerated inference, with CI/CD model rollouts, 
+          drift monitoring, and regulatory compliance (FINRA, SOC2) across AWS and Kubernetes.
+        </div>
+        <div class="about-certs">
+          <span class="cert-tag">AWS Solutions Architect</span>
+          <span class="cert-tag">AWS Developer</span>
+          <span class="cert-tag">SAFe 5 Practitioner</span>
+        </div>
+        <div class="about-edu">
+          <div class="edu-row">
+            <span class="edu-degree">MS Business Analytics</span>
+            <span class="edu-school">— Trine University</span>
+          </div>
+          <div class="edu-row">
+            <span class="edu-degree">MS Computer Science</span>
+            <span class="edu-school">— Chicago State University</span>
+          </div>
+        </div>
+        <div style="margin-top: 20px;"></div>
+        <div class="about-links">
+          <a href="https://www.linkedin.com/in/saikumarvurukonda" target="_blank" class="about-link">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 01-2.063-2.065 2.064 2.064 0 112.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/></svg>
+            LinkedIn
+          </a>
+          <a href="https://github.com/saikumarv3" target="_blank" class="about-link">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/></svg>
+            GitHub
+          </a>
+          <a href="mailto:saikumarvurukonda@gmail.com" class="about-link">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 24 24"><path d="M1.5 8.67v8.58a3 3 0 003 3h15a3 3 0 003-3V8.67l-8.928 5.493a3 3 0 01-3.144 0L1.5 8.67z"/><path d="M22.5 6.908V6.75a3 3 0 00-3-3h-15a3 3 0 00-3 3v.158l9.714 5.978a1.5 1.5 0 001.572 0L22.5 6.908z"/></svg>
+            Email
+          </a>
+        </div>
+      </div>
+
+      <div class="about-highlights">
+        <div class="highlight-card">
+          <div class="highlight-icon icon-green">🧠</div>
+          <div>
+            <div class="highlight-title">Graph Neural Networks at Scale</div>
+            <div class="highlight-desc">Fraud detection on <strong>50M+ node</strong> transactional graphs at Fidelity — improved precision-recall AUC by <strong>28%</strong> over gradient-boosting baselines, reduced false-positive review volume by <strong>40%</strong>.</div>
+          </div>
+        </div>
+        <div class="highlight-card">
+          <div class="highlight-icon icon-cyan">📑</div>
+          <div>
+            <div class="highlight-title">Multimodal Document Intelligence</div>
+            <div class="highlight-desc">Led FidScan — ColPali embeddings + GPT-4o Vision + OCR validation automating <strong>50K+ KYC/AML documents daily</strong>. TensorRT quantization cut inference to <strong>sub-second</strong>, reducing manual review by <strong>71%</strong>.</div>
+          </div>
+        </div>
+        <div class="highlight-card">
+          <div class="highlight-icon icon-indigo">🎯</div>
+          <div>
+            <div class="highlight-title">Recommendation & Experimentation</div>
+            <div class="highlight-desc">Next-Best-Action engine fusing <strong>GraphSAGE + Transformer</strong> session modeling. Designed A/B experiments for causal impact measurement and contextual bandit exploration for real-time action ranking.</div>
+          </div>
+        </div>
+        <div class="highlight-card">
+          <div class="highlight-icon icon-amber">🔊</div>
+          <div>
+            <div class="highlight-title">Real-Time Audio ML Pipelines</div>
+            <div class="highlight-desc">At Shure — architected event-driven pipelines processing <strong>8M+ acoustic events daily</strong> across enterprise audio platforms. CNN-based classification with <strong>25%</strong> accuracy improvement in noisy environments.</div>
+          </div>
+        </div>
+        <div class="highlight-card">
+          <div class="highlight-icon icon-rose">⚙️</div>
+          <div>
+            <div class="highlight-title">MLOps & Production Infrastructure</div>
+            <div class="highlight-desc">End-to-end ML platforms on <strong>AWS SageMaker + Kubernetes</strong> — MLflow tracking, feature stores, model registry, drift monitoring, CI/CD rollouts with rollback strategies across millions of transactions.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
 <!-- PROJECTS -->
 <section id="projects">
   <div class="container">
     <div class="section-header">
-      <div class="section-tag">Our Products</div>
-      <h2>AI Tools Built for <span class="gradient-text">Real Decisions</span></h2>
-      <p>Each product is end-to-end — from data pipeline to live dashboard — built to solve a specific, measurable business problem.</p>
+      <div class="section-tag">Projects</div>
+      <h2>AI Systems Built for <span class="gradient-text">Real Impact</span></h2>
+      <p>Each project is end-to-end — from data pipeline to production deployment — built to solve a specific, measurable business problem.</p>
     </div>
 
     <div class="projects-grid">
@@ -520,97 +718,127 @@
         </div>
       </a>
 
-      <!-- PROJECT 2 — IN DEV -->
-      <div class="project-card coming-soon">
+      <!-- DRUGSAFE MULTI-AGENT SYSTEM -->
+      <a href="https://github.com/saikumarv3/drugsafe-multi-agent-system" target="_blank" class="project-card">
         <div class="card-header">
           <div class="card-icon icon-indigo">💊</div>
-          <span class="status-badge status-dev">In Development</span>
+          <span class="status-badge status-dev">GitHub</span>
         </div>
-        <div class="card-title">DrugSafe AI</div>
+        <div class="card-title">DrugSafe Multi-Agent System</div>
         <div class="card-desc">
-          Multi-agent drug interaction checker and prescription risk analyzer for healthcare providers.
-          Flags contraindications in real-time, reducing adverse drug event risk.
+          Autonomous drug interaction and safety analysis using a team of specialized AI agents — 
+          Researcher, Analyzer, Reporter, Critic — with ReAct reasoning, memory hierarchy (short-term, 
+          working, long-term via ChromaDB), and a side-by-side framework comparison (Raw API vs LangGraph vs CrewAI).
         </div>
         <div class="card-tags">
           <span class="tag">LangGraph</span>
-          <span class="tag">RAG</span>
-          <span class="tag">FastAPI</span>
-          <span class="tag">React</span>
+          <span class="tag">CrewAI</span>
+          <span class="tag">ChromaDB</span>
+          <span class="tag">GPT-4o</span>
+          <span class="tag">Streamlit</span>
         </div>
         <div class="card-footer">
-          <div class="card-metric">Target industry: <strong>Healthcare</strong></div>
+          <div class="card-metric">Domain: <strong>Healthcare AI</strong></div>
           <span class="card-arrow">→</span>
         </div>
-      </div>
+      </a>
 
-      <!-- PROJECT 3 -->
-      <div class="project-card coming-soon">
+      <!-- RAG CONTRACT INTELLIGENCE -->
+      <a href="https://github.com/saikumarv3/rag-contract-intelligence" target="_blank" class="project-card">
         <div class="card-header">
           <div class="card-icon icon-cyan">📄</div>
-          <span class="status-badge status-soon">Coming Soon</span>
+          <span class="status-badge status-dev">GitHub</span>
         </div>
-        <div class="card-title">ContractIQ</div>
+        <div class="card-title">RAG Contract Intelligence</div>
         <div class="card-desc">
-          RAG-powered contract intelligence platform. Upload any contract and instantly extract
-          obligations, risk clauses, renewal dates, and liability limits.
+          Multi-agent RAG system for legal contract analysis. Upload PDFs, query in plain English — 
+          get instant answers with exact page/section citations. Hybrid search (dense vectors + BM25) 
+          with cross-encoder reranking and per-tenant isolation.
         </div>
         <div class="card-tags">
           <span class="tag">RAG</span>
-          <span class="tag">LLM</span>
-          <span class="tag">Vector DB</span>
+          <span class="tag">ChromaDB</span>
+          <span class="tag">FastAPI</span>
+          <span class="tag">OpenAI</span>
+          <span class="tag">BM25</span>
+        </div>
+        <div class="card-footer">
+          <div class="card-metric">Domain: <strong>Legal / Finance</strong></div>
+          <span class="card-arrow">→</span>
+        </div>
+      </a>
+
+      <!-- NEMO PAYMENT GUARDRAILS -->
+      <a href="https://github.com/saikumarv3/nemo-payment-guardrails-lab" target="_blank" class="project-card">
+        <div class="card-header">
+          <div class="card-icon icon-amber">🛡️</div>
+          <span class="status-badge status-dev">GitHub</span>
+        </div>
+        <div class="card-title">NeMo Payment Guardrails</div>
+        <div class="card-desc">
+          4-layer NVIDIA NeMo Guardrails financial copilot with Colang rail definitions — 
+          PII self-correction, prompt-injection defense, domain-boundary enforcement, and 
+          safe payment processing through guardrailed LLM interactions.
+        </div>
+        <div class="card-tags">
+          <span class="tag">NeMo Guardrails</span>
+          <span class="tag">Colang</span>
+          <span class="tag">LLM Safety</span>
           <span class="tag">Python</span>
         </div>
         <div class="card-footer">
-          <div class="card-metric">Target industry: <strong>Legal / Finance</strong></div>
+          <div class="card-metric">Domain: <strong>Financial AI Safety</strong></div>
           <span class="card-arrow">→</span>
         </div>
-      </div>
+      </a>
 
-      <!-- PROJECT 4 -->
-      <div class="project-card coming-soon">
+      <!-- GPU VISION LAB -->
+      <a href="https://github.com/saikumarv3/gpu-vision-lab" target="_blank" class="project-card">
         <div class="card-header">
-          <div class="card-icon icon-amber">📈</div>
-          <span class="status-badge status-soon">Coming Soon</span>
+          <div class="card-icon icon-rose">🎮</div>
+          <span class="status-badge status-dev">GitHub</span>
         </div>
-        <div class="card-title">StockPulse AI</div>
+        <div class="card-title">GPU Vision Lab</div>
         <div class="card-desc">
-          Real-time stock analysis agent that combines financial data, earnings reports, and news
-          sentiment to generate buy/sell signals with explainable reasoning.
+          CUDA/C++ computer vision research project — GPU memory management, custom CUDA kernels 
+          for image processing (grayscale, convolution, edge detection), stream-based async pipelines, 
+          and CPU vs GPU benchmarking harness.
         </div>
         <div class="card-tags">
-          <span class="tag">MCP</span>
-          <span class="tag">LangChain</span>
-          <span class="tag">TimeSeries</span>
-          <span class="tag">Redis</span>
+          <span class="tag">CUDA</span>
+          <span class="tag">C++</span>
+          <span class="tag">Computer Vision</span>
+          <span class="tag">GPU</span>
         </div>
         <div class="card-footer">
-          <div class="card-metric">Target industry: <strong>Finance</strong></div>
+          <div class="card-metric">Domain: <strong>GPU / Systems</strong></div>
           <span class="card-arrow">→</span>
         </div>
-      </div>
+      </a>
 
-      <!-- PROJECT 5 -->
-      <div class="project-card coming-soon">
+      <!-- MICROS FW LOGIN -->
+      <a href="https://github.com/saikumarv3/micros-fw-login" target="_blank" class="project-card">
         <div class="card-header">
-          <div class="card-icon icon-rose">🏗️</div>
-          <span class="status-badge status-soon">Coming Soon</span>
+          <div class="card-icon icon-green">🔐</div>
+          <span class="status-badge status-dev">GitHub</span>
         </div>
-        <div class="card-title">SiteIQ</div>
+        <div class="card-title">Micros FW Login</div>
         <div class="card-desc">
-          Predictive maintenance and safety monitoring for construction sites. Computer vision +
-          sensor fusion to detect hazards and predict equipment failures before they occur.
+          Full-stack authentication microservice with Docker Compose orchestration — 
+          Node.js backend, MySQL database, and Angular UI. Production-ready with 
+          environment-based config and containerized deployment.
         </div>
         <div class="card-tags">
-          <span class="tag">CV</span>
-          <span class="tag">YOLO</span>
-          <span class="tag">IoT</span>
-          <span class="tag">Kafka</span>
+          <span class="tag">Node.js</span>
+          <span class="tag">Docker</span>
+          <span class="tag">MySQL</span>
+          <span class="tag">Angular</span>
         </div>
         <div class="card-footer">
-          <div class="card-metric">Target industry: <strong>Construction</strong></div>
+          <div class="card-metric">Domain: <strong>Microservices</strong></div>
           <span class="card-arrow">→</span>
         </div>
-      </div>
+      </a>
 
     </div>
   </div>
@@ -685,8 +913,9 @@
       <div class="footer-copy">© 2026 ChotuLab · AI products for real business problems</div>
       <div class="footer-links">
         <a href="https://github.com/saikumarv3" target="_blank">GitHub</a>
+        <a href="https://www.linkedin.com/in/saikumarvurukonda" target="_blank">LinkedIn</a>
         <a href="https://shelflifeai.chotulab.com" target="_blank">ShelfLife AI</a>
-        <a href="mailto:hello@chotulab.com">Contact</a>
+        <a href="mailto:saikumarvurukonda@gmail.com">Contact</a>
       </div>
     </div>
   </div>
@@ -695,10 +924,10 @@
 <script>
   // Tech belt — duplicate for infinite scroll
   const techs = [
-    'Python','FastAPI','Streamlit','XGBoost','LightGBM','MLflow',
-    'PostgreSQL','Redis','Docker','GitHub Actions','Traefik','Hetzner',
-    'LangChain','LangGraph','RAG','Vector DB','React','TypeScript',
-    'scikit-learn','Pandas','Plotly','Pydantic','SQLAlchemy','Coolify'
+    'Python','C++','CUDA','FastAPI','Streamlit','XGBoost','LightGBM','MLflow',
+    'PostgreSQL','Redis','Docker','Kubernetes','AWS SageMaker','TensorRT',
+    'LangChain','LangGraph','CrewAI','RAG','ChromaDB','NeMo Guardrails',
+    'PyTorch','scikit-learn','Pandas','Plotly','OpenAI','GraphSAGE'
   ];
   const belt = document.getElementById('beltTrack');
   const all = [...techs, ...techs]; // duplicate for seamless loop
@@ -720,7 +949,7 @@
     });
   }, { threshold: 0.1 });
 
-  document.querySelectorAll('.project-card, .pillar, .stat-item').forEach(el => {
+  document.querySelectorAll('.project-card, .pillar, .stat-item, .highlight-card, .about-profile').forEach(el => {
     el.style.opacity = '0';
     el.style.transform = 'translateY(20px)';
     obs.observe(el);
