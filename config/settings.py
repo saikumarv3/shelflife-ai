@@ -43,7 +43,7 @@ class Settings(BaseSettings):
 
     # ── Security ──────────────────────────────────────────────
     rate_limit_per_minute: int = 100
-    cors_origins: str = "http://localhost:8501"
+    cors_origins: str = "http://localhost:8501,https://www.chotulab.com,https://chotulab.com"
 
     # ── MLOps thresholds ──────────────────────────────────────
     retrain_schedule_days: int = 7
