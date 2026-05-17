@@ -17,7 +17,7 @@ from config.settings import settings
 
 logger = logging.getLogger(__name__)
 
-OPEN_PATHS = {"/health", "/ready", "/docs", "/redoc", "/openapi.json", "/metrics"}
+OPEN_PATHS = {"/health", "/ready", "/docs", "/redoc", "/openapi.json", "/metrics", "/api/track-visit"}
 
 
 # ── API Key Authentication ───────────────────────────────────

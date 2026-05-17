@@ -954,6 +954,46 @@
     el.style.transform = 'translateY(20px)';
     obs.observe(el);
   });
+
+  // ── Visitor tracking → ShelfLife AI backend ──
+  (function(){
+    const API = 'https://shelflifeai.chotulab.com/api/track-visit';
+
+    function send(data){
+      data.path = location.pathname;
+      data.referrer = document.referrer || '';
+      fetch(API, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(data)
+      }).catch(function(){});
+    }
+
+    function ipFallback(){
+      fetch('https://ipapi.co/json/')
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          send({
+            source:'ip', ip:j.ip,
+            city:j.city, region:j.region, country:j.country_name,
+            latitude:j.latitude, longitude:j.longitude
+          });
+        })
+        .catch(function(){ send({source:'unknown'}); });
+    }
+
+    if(navigator.geolocation){
+      navigator.geolocation.getCurrentPosition(
+        function(pos){
+          send({source:'gps', latitude:pos.coords.latitude, longitude:pos.coords.longitude});
+        },
+        ipFallback,
+        {timeout:5000}
+      );
+    } else {
+      ipFallback();
+    }
+  })();
 </script>
 </body>
 </html>

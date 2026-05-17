@@ -251,3 +251,25 @@ class Alert(Base):
     metadata_json = Column(JSONB)
     acknowledged = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
+
+
+# ── 10. site_visits (simple visitor tracking) ────────────────────────────────
+
+
+class SiteVisit(Base):
+    __tablename__ = "site_visits"
+
+    visit_id = Column(Integer, primary_key=True, autoincrement=True)
+    received_at = Column(DateTime, server_default=func.now(), nullable=False)
+    source = Column(String(20))  # 'gps' | 'ip' | 'unknown'
+    ip = Column(String(45))
+    city = Column(String(100))
+    region = Column(String(100))
+    country = Column(String(100))
+    latitude = Column(Numeric(9, 6))
+    longitude = Column(Numeric(9, 6))
+    user_agent = Column(String(512))
+    path = Column(String(256))
+    referrer = Column(String(256))
+    payload_json = Column(JSONB)
+

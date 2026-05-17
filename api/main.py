@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from api.dependencies import get_model_manager
 from api.middleware import AuthMiddleware, RateLimitMiddleware, RequestLoggingMiddleware
-from api.routes import forecast, health, inventory, recommend, waste
+from api.routes import analytics, forecast, health, inventory, recommend, waste
 from config.settings import settings
 from monitoring.metrics import MODEL_VERSION
 
@@ -97,3 +97,4 @@ app.include_router(forecast.router)
 app.include_router(waste.router)
 app.include_router(recommend.router)
 app.include_router(inventory.router)
+app.include_router(analytics.router)
