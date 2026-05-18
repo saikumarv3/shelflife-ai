@@ -91,7 +91,7 @@ services:
       MLFLOW_TRACKING_URI: "sqlite:////app/artifacts/mlflow.db"
       API_KEY: ${API_KEY}
       API_WORKERS: ${API_WORKERS:-2}
-      CORS_ORIGINS: "https://${DASHBOARD_DOMAIN},http://localhost:8501"
+      CORS_ORIGINS: "https://${DASHBOARD_DOMAIN},http://localhost:8501,https://www.chotulab.com,https://chotulab.com"
       LOG_LEVEL: "INFO"
       RATE_LIMIT_PER_MINUTE: "100"
     volumes:
