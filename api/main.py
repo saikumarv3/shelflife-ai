@@ -52,9 +52,19 @@ def _job_retrain():
         retrain_and_validate(engine)
 
 
+def _ensure_analytics_table():
+    """Create the site_visits table if it doesn't exist (safe to call every startup)."""
+    from db.models import SiteVisit
+    from db.session import engine
+
+    SiteVisit.__table__.create(bind=engine, checkfirst=True)
+    logger.info("Analytics table ensured")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     logger.info("Starting ShelfLife AI API...")
+    _ensure_analytics_table()
     mm = get_model_manager()
     mm.load()
     if mm.is_loaded:
